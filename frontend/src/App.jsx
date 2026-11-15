@@ -1,5 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AdminHomePage } from "./features/admin/AdminHomePage.jsx";
+import { AuthProvider } from "./features/auth/AuthContext.jsx";
+import { SessionExpiredModal } from "./features/auth/SessionExpiredModal.jsx";
+import { SignInPage } from "./features/auth/SignInPage.jsx";
+import { SignOutPage } from "./features/auth/SignOutPage.jsx";
+import { SignUpPage } from "./features/auth/SignUpPage.jsx";
 import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
 import { LandingPage } from "./features/public/LandingPage.jsx";
 import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
@@ -15,9 +20,9 @@ export function AppRoutes() {
         <Route index element={<LandingPage />} />
         <Route path="explore" element={<PlaceholderPage title={messages.nav.explore} />} />
         <Route path="ai" element={<PlaceholderPage title={messages.nav.ai} />} />
-        <Route path="sign-in" element={<PlaceholderPage title={messages.nav.signIn} />} />
-        <Route path="sign-up" element={<PlaceholderPage title={messages.nav.signUp} />} />
-        <Route path="sign-out" element={<PlaceholderPage title={messages.nav.signOut} />} />
+        <Route path="sign-in" element={<SignInPage />} />
+        <Route path="sign-up" element={<SignUpPage />} />
+        <Route path="sign-out" element={<SignOutPage />} />
       </Route>
 
       <Route path="app/customer" element={<CustomerLayout />}>
@@ -60,7 +65,10 @@ export function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AuthProvider>
+        <AppRoutes />
+        <SessionExpiredModal />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

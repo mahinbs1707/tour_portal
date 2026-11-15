@@ -41,3 +41,29 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-3-user-model-roles-and-admin-seed.md`
   summary: Smoke redirect assertions should accept request Host (localhost vs 127.0.0.1), not hard-require 127.0.0.1 Location
   evidence: Pre-existing 1.1 smoke hardening bundled in dirty tree; localhost base can false-fail despite correct port-preserving redirects
+
+## Deferred from: build review of spec-1-4-customer-registration.md (2026-11-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-4-customer-registration.md`
+  summary: Replace Sign up “Already have an account?” `/sign-in` placeholder with real Sign in UI
+  evidence: Link is intentional forward reference; Sign in is Story 1.5
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-4-customer-registration.md`
+  summary: Add AbortSignal/timeouts on CSRF and register fetch so submit cannot hang forever
+  evidence: Edge-case hang; rejected as non-trivial for this story — revisit if hangs appear in QA
+
+## Deferred from: scope split of spec-1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient.md (2026-11-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient.md`
+  summary: Login rate-limit / lockout against repeated failed Sign in attempts (AD-2)
+  evidence: Split from Story 1.5 to keep the spec under the token guideline; security intent unchanged and still required. Follow-up backlog key `1-5a-login-rate-limit-and-lockout` in `sprint-status.yaml`. Traceability: AD-2 (“Login must apply basic rate limiting / lockout against repeated failed attempts”); Epic 1 Technical Decisions (login rate-limit/lockout). Do not treat Story 1.5 done as satisfying this control.
+
+## Deferred from: build review of spec-1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient.md (2026-11-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient.md`
+  summary: SessionExpiredModal Escape-to-dismiss, initial focus, and focus trap
+  evidence: aria-describedby shipped; full dialog a11y kit deferred with later modal patterns
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient.md`
+  summary: Ensure logout API failure cannot leave a usable server session after Guest chrome is shown
+  evidence: Current signOut clears local user then best-effort logout; harden with cookie clear / retry if QA sees sticky sessions
