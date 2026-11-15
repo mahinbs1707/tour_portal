@@ -42,13 +42,27 @@ vi.mock("../../services/apiClient.js", async () => {
 
 import { ApiError } from "../../services/apiClient.js";
 
-function renderSignIn() {
+function renderSignIn(path = "/sign-in") {
   return render(
-    <MemoryRouter initialEntries={["/sign-in"]}>
+    <MemoryRouter initialEntries={[path]}>
       <AuthProvider>
         <SignInPage />
       </AuthProvider>
     </MemoryRouter>,
+  );
+}
+
+async function submitValidSignIn(user) {
+  await user.type(
+    screen.getByLabelText(messages.auth.email),
+    "alex@example.com",
+  );
+  await user.type(
+    screen.getByLabelText(messages.auth.password),
+    "SecurePass1",
+  );
+  await user.click(
+    screen.getByRole("button", { name: messages.auth.submitSignIn }),
   );
 }
 
@@ -108,18 +122,7 @@ describe("SignInPage", () => {
     });
 
     renderSignIn();
-
-    await user.type(
-      screen.getByLabelText(messages.auth.email),
-      "alex@example.com",
-    );
-    await user.type(
-      screen.getByLabelText(messages.auth.password),
-      "SecurePass1",
-    );
-    await user.click(
-      screen.getByRole("button", { name: messages.auth.submitSignIn }),
-    );
+    await submitValidSignIn(user);
 
     await waitFor(() => {
       expect(loginMock).toHaveBeenCalledWith({
@@ -128,5 +131,45 @@ describe("SignInPage", () => {
       });
     });
     expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
+  });
+
+  it("honors safe next including hash after sign in", async () => {
+    const user = userEvent.setup();
+    loginMock.mockResolvedValue({
+      id: "uuid",
+      email: "alex@example.com",
+      role: "CUSTOMER",
+      is_staff: false,
+      is_superuser: false,
+    });
+
+    renderSignIn(
+      `/sign-in?next=${encodeURIComponent("/app/customer#bookings")}`,
+    );
+    await submitValidSignIn(user);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith("/app/customer#bookings", {
+        replace: true,
+      });
+    });
+  });
+
+  it("rejects protocol-relative next and falls back to landing", async () => {
+    const user = userEvent.setup();
+    loginMock.mockResolvedValue({
+      id: "uuid",
+      email: "alex@example.com",
+      role: "CUSTOMER",
+      is_staff: false,
+      is_superuser: false,
+    });
+
+    renderSignIn(`/sign-in?next=${encodeURIComponent("//evil.example")}`);
+    await submitValidSignIn(user);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
+    });
   });
 });

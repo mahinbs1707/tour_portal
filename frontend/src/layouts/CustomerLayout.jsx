@@ -1,25 +1,39 @@
-import { Outlet } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SkipLink } from "../components/chrome/SkipLink.jsx";
 import { TopNav } from "../components/chrome/TopNav.jsx";
-import { messages } from "../i18n/messages.js";
-
-const customerItems = [
-  { to: "/explore", label: messages.nav.explore },
-  { to: "/ai", label: messages.nav.ai },
-  { to: "/app/customer/bookings", label: messages.nav.myBookings },
-  { to: "/app/customer/custom-tours", label: messages.nav.customTours },
-  { to: "/app/customer/notifications", label: messages.nav.notifications },
-  { to: "/sign-out", label: messages.nav.signOut },
-];
+import { StatusToast } from "../components/ui/StatusToast.jsx";
+import { customerNavItems } from "../features/auth/navConfig.js";
 
 export function CustomerLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [toastMessage, setToastMessage] = useState(
+    () => location.state?.statusToast ?? null,
+  );
+
+  useEffect(() => {
+    setToastMessage(location.state?.statusToast ?? null);
+  }, [location.state]);
+
+  const dismissToast = useCallback(() => {
+    setToastMessage(null);
+    if (location.state?.statusToast) {
+      navigate(location.pathname + location.search + location.hash, {
+        replace: true,
+        state: {},
+      });
+    }
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
+
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)] text-[var(--color-foreground)]">
       <SkipLink />
-      <TopNav brandTo="/app/customer" items={customerItems} />
+      <TopNav brandTo="/app/customer" items={customerNavItems} />
       <main id="main-content" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
+      <StatusToast message={toastMessage} onDismiss={dismissToast} />
     </div>
   );
 }

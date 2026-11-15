@@ -1,8 +1,9 @@
 import { useId, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { useAuth } from "./AuthContext.jsx";
+import { safeNextPath } from "./safeNextPath.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,6 +27,7 @@ const errorClass = "mt-1 text-body-sm text-[var(--color-destructive)]";
 
 export function SignInPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
   const formId = useId();
 
@@ -62,7 +64,8 @@ export function SignInPage() {
         email: email.trim(),
         password,
       });
-      navigate("/", { replace: true });
+      const returnTo = safeNextPath(searchParams.get("next"));
+      navigate(returnTo ?? "/", { replace: true });
     } catch (error) {
       setPassword("");
       if (error instanceof ApiError) {

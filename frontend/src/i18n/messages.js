@@ -13,6 +13,8 @@ export const messages = {
     mainNav: "Primary",
     adminNav: "Admin",
     adminSidebar: "Admin sidebar",
+    loadingSession: "Loading session",
+    dismissStatus: "Dismiss",
   },
   nav: {
     explore: "Explore",
@@ -61,6 +63,7 @@ export const messages = {
     sessionEndedTitle: "Your session ended.",
     sessionEndedBody: "Sign in again to continue. Your non-sensitive drafts can be restored later.",
     sessionEndedDismiss: "Dismiss",
+    permissionDenied: "You do not have permission to view that page.",
     errors: {
       fullNameRequired: "Enter your full name.",
       emailRequired: "Enter your email address.",

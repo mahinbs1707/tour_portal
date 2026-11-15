@@ -67,3 +67,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient.md`
   summary: Ensure logout API failure cannot leave a usable server session after Guest chrome is shown
   evidence: Current signOut clears local user then best-effort logout; harden with cookie clear / retry if QA sees sticky sessions
+
+## Deferred from: build review of spec-1-6-role-aware-navigation-and-route-guards.md (2026-11-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-6-role-aware-navigation-and-route-guards.md`
+  summary: Add Admin Sign out affordance inside Admin sidebar (not only via View site → public Sign out)
+  evidence: Sidebar-first Admin UX; Sign out works from public chrome today; deepen Admin chrome later if ops need one-click logout

@@ -60,6 +60,16 @@ function renderApp(initialEntry) {
 describe("router shell", () => {
   beforeEach(() => {
     mockMatchMedia(false);
+    meMock.mockReset();
+    meMock.mockRejectedValue(
+      Object.assign(new Error("Authentication credentials were not provided."), {
+        name: "ApiError",
+        status: 401,
+        fieldErrors: {},
+        nonFieldErrors: ["Authentication credentials were not provided."],
+      }),
+    );
+    logoutMock.mockClear();
   });
 
   afterEach(() => {
@@ -79,13 +89,22 @@ describe("router shell", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
 
-  it("opens AdminLayout sheet navigation", async () => {
+  it("opens AdminLayout sheet navigation when role is ADMIN", async () => {
+    meMock.mockResolvedValue({
+      id: "a1",
+      email: "admin@example.com",
+      role: "ADMIN",
+      is_staff: true,
+      is_superuser: true,
+    });
     const user = userEvent.setup();
 
     renderApp("/app/admin");
 
     await user.click(
-      screen.getByRole("button", { name: messages.a11y.openAdminNav }),
+      await screen.findByRole("button", {
+        name: messages.a11y.openAdminNav,
+      }),
     );
 
     const dialog = screen.getByRole("dialog");

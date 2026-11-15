@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AdminHomePage } from "./features/admin/AdminHomePage.jsx";
 import { AuthProvider } from "./features/auth/AuthContext.jsx";
+import { RequireAuth } from "./features/auth/RequireAuth.jsx";
+import { RequireRole } from "./features/auth/RequireRole.jsx";
 import { SessionExpiredModal } from "./features/auth/SessionExpiredModal.jsx";
 import { SignInPage } from "./features/auth/SignInPage.jsx";
 import { SignOutPage } from "./features/auth/SignOutPage.jsx";
@@ -25,7 +27,16 @@ export function AppRoutes() {
         <Route path="sign-out" element={<SignOutPage />} />
       </Route>
 
-      <Route path="app/customer" element={<CustomerLayout />}>
+      <Route
+        path="app/customer"
+        element={
+          <RequireAuth>
+            <RequireRole role="CUSTOMER">
+              <CustomerLayout />
+            </RequireRole>
+          </RequireAuth>
+        }
+      >
         <Route index element={<CustomerHomePage />} />
         <Route
           path="bookings"
@@ -41,7 +52,16 @@ export function AppRoutes() {
         />
       </Route>
 
-      <Route path="app/admin" element={<AdminLayout />}>
+      <Route
+        path="app/admin"
+        element={
+          <RequireAuth>
+            <RequireRole role="ADMIN">
+              <AdminLayout />
+            </RequireRole>
+          </RequireAuth>
+        }
+      >
         <Route index element={<AdminHomePage />} />
         <Route
           path="packages"
