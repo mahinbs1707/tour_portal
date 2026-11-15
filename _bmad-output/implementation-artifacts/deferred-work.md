@@ -17,3 +17,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-local-compose-runtime-baseline.md`
   summary: Assert Django settings.TIME_ZONE == Asia/Dhaka in smoke (not only BUSINESS_TIMEZONE env)
   evidence: Story 1.1 AC is env-facing; settle on first timezone-sensitive story
+
+## Deferred from: code review of spec-1-1-local-compose-runtime-baseline.md (2026-11-16)
+
+- Assert Django `settings.TIME_ZONE == Asia/Dhaka` in smoke (not only `BUSINESS_TIMEZONE` env) — settle on first timezone-sensitive story
+- Make `sprint-status.yaml` `story_location` portable (relative path) — tooling cleanup across clones/OSes
+- Deepen `/api/health/` to verify Postgres connectivity — Compose already healthchecks Postgres; revisit with readiness SLOs
+
+## Deferred from: build review of spec-1-2-design-tokens-and-route-group-shells.md (2026-11-16)
+
+- Sheet background `aria-hidden` / inert while open — deepen with fuller dialog kit later
