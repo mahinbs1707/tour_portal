@@ -27,3 +27,17 @@
 ## Deferred from: build review of spec-1-2-design-tokens-and-route-group-shells.md (2026-11-16)
 
 - Sheet background `aria-hidden` / inert while open — deepen with fuller dialog kit later
+
+## Deferred from: build review of spec-1-3-user-model-roles-and-admin-seed.md (2026-11-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-3-user-model-roles-and-admin-seed.md`
+  summary: Supply email-aware Django admin `form` / `add_form` for `accounts.UserAdmin`
+  evidence: Fieldsets are email-based but default UserAdmin forms still expect username; seed/RBAC ACs do not require django-admin UX
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-3-user-model-roles-and-admin-seed.md`
+  summary: Harden Nginx Host forwarding when client omits Host (`$http_host` empty)
+  evidence: Edge case on pre-existing 1.1 proxy change; uncommon clients; revisit with proxy hardening
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-3-user-model-roles-and-admin-seed.md`
+  summary: Smoke redirect assertions should accept request Host (localhost vs 127.0.0.1), not hard-require 127.0.0.1 Location
+  evidence: Pre-existing 1.1 smoke hardening bundled in dirty tree; localhost base can false-fail despite correct port-preserving redirects

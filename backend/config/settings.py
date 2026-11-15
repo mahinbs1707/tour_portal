@@ -7,25 +7,48 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+SECRET_KEY = (os.environ.get("DJANGO_SECRET_KEY") or "").strip()
 if not SECRET_KEY:
-    raise RuntimeError("DJANGO_SECRET_KEY must be set via the environment")
+    raise RuntimeError(
+        "DJANGO_SECRET_KEY must be set via the environment "
+        "(non-empty, not whitespace-only)"
+    )
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in (os.environ.get("DJANGO_ALLOWED_HOSTS") or "localhost,127.0.0.1").split(",")
-    if host.strip()
-]
 
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in (
-        os.environ.get("CSRF_TRUSTED_ORIGINS") or "http://localhost:8080"
-    ).split(",")
-    if origin.strip()
-]
+def _parse_csv_env(name: str) -> list[str] | None:
+    """Return parsed non-empty tokens, or None when the variable is unset."""
+    if name not in os.environ:
+        return None
+    return [part.strip() for part in os.environ[name].split(",") if part.strip()]
+
+
+_raw_allowed_hosts = _parse_csv_env("DJANGO_ALLOWED_HOSTS")
+if _raw_allowed_hosts is None:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+elif not _raw_allowed_hosts:
+    raise RuntimeError(
+        "DJANGO_ALLOWED_HOSTS is set but contains no valid hosts after parsing. "
+        "Provide a comma-separated list (e.g. localhost,127.0.0.1)."
+    )
+else:
+    ALLOWED_HOSTS = _raw_allowed_hosts
+
+_raw_csrf_origins = _parse_csv_env("CSRF_TRUSTED_ORIGINS")
+if _raw_csrf_origins is None:
+    # Local Compose default only when unset; empty list is valid for same-origin.
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:8080"]
+else:
+    CSRF_TRUSTED_ORIGINS = _raw_csrf_origins
+    for origin in CSRF_TRUSTED_ORIGINS:
+        if not (
+            origin.startswith("http://") or origin.startswith("https://")
+        ):
+            raise RuntimeError(
+                f"CSRF_TRUSTED_ORIGINS entry {origin!r} must start with "
+                "http:// or https://"
+            )
 
 
 BUSINESS_TIMEZONE = os.environ.get("BUSINESS_TIMEZONE", "Asia/Dhaka")
@@ -39,7 +62,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "accounts",
+    "common",
+    "notifications",
+    "audit",
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -70,16 +99,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "tourportal"),
-        "USER": os.environ.get("POSTGRES_USER", "tourportal"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-        "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+if os.environ.get("DJANGO_USE_SQLITE") == "1":
+    # Local/unit-test convenience (Compose runtime still uses Postgres).
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.environ.get("DJANGO_SQLITE_NAME", str(BASE_DIR / "db.sqlite3")),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "tourportal"),
+            "USER": os.environ.get("POSTGRES_USER", "tourportal"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
