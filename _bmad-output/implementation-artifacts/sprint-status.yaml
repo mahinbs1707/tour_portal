@@ -1,0 +1,150 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 11-16-2026 00:41
+last_updated: 11-16-2026 02:05
+project: project_final
+project_key: NOKEY
+tracking_system: file-system
+story_location: 
+  c:\E2E_Learning\project_final\_bmad-output\implementation-artifacts
+development_status:
+  epic-1: in-progress
+  1-1-local-compose-runtime-baseline: review
+  1-2-design-tokens-and-route-group-shells: backlog
+  1-3-user-model-roles-and-admin-seed: backlog
+  1-4-customer-registration: backlog
+  1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient: backlog
+  1-6-role-aware-navigation-and-route-guards: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-admin-package-create-edit-draft-publish: backlog
+  2-2-available-dates-management-deactivate-never-hard-delete-with: backlog
+  2-3-package-media-upload-and-serving: backlog
+  2-4-featured-flag-and-admin-packages-list-ux: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-public-catalog-listing: backlog
+  3-2-package-detail-page: backlog
+  3-3-landing-hero-and-featured-packages: backlog
+  3-4-server-side-search-and-filters: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-recommendation-service-and-api: backlog
+  4-2-ai-recommendations-ui: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-booking-create-api-with-7-day-rule-asia-dhaka: backlog
+  5-2-booking-form-review-and-auth-return: backlog
+  5-3-booking-confirmation-history-detail-and-cancel-pending: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-admin-bookings-list-filter-and-detail: backlog
+  6-2-approve-booking-and-open-payment-window: backlog
+  6-3-reject-booking-with-mandatory-reason: backlog
+  6-4-reopen-and-extend-payment-window: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-paymentprovider-mock-and-payment-attempt-api: backlog
+  7-2-pay-now-gating-and-mock-checkout-ui: backlog
+  7-3-retry-countdown-accessibility-and-offline-pay-guard: backlog
+  epic-7-retrospective: optional
+
+  epic-8: backlog
+  8-1-custom-tour-submit-private-7-day-rule: backlog
+  8-2-customer-custom-tour-history-and-detail: backlog
+  8-3-admin-custom-tour-review-approve-reject-reapply-flag: backlog
+  8-4-customer-reapply-flow: backlog
+  epic-8-retrospective: optional
+
+  epic-9: backlog
+  9-1-notification-center-inbox: backlog
+  9-2-customer-home-dashboard-aggregates: backlog
+  9-3-admin-operational-dashboard: backlog
+  epic-9-retrospective: optional
+
+# Sprint-planning safeguards (from approved epics.md + readiness CONCERNS proceed).
+# Source baselines: PRD v1.5, Architecture Spine v1.1, epics.md approved 2026-11-16.
+# Story statuses stay backlog until story files exist — "blocked" work is tracked here
+# because sprint-status story vocabulary has no blocked state.
+action_items:
+  - epic: 5
+    action: >-
+      BLOCKED (OPEN-02): Do not invent or enforce a maximum traveler limit.
+      Stories 5.1 and 5.2 validate positive integer (≥1) only; upper-bound
+      traveler validation remains unimplemented until product decides a max
+      or explicitly approves "no maximum." Preserve AC/traceability in epics.md.
+    owner: product
+    status: open
+    refs: [OPEN-02, "5-1-booking-create-api-with-7-day-rule-asia-dhaka", "5-2-booking-form-review-and-auth-return"]
+  - epic: 8
+    action: >-
+      BLOCKED (OPEN-02): Same traveler-maximum hold for custom tours.
+      Story 8.1 validates ≥1 only; do not invent a max pending product decision.
+    owner: product
+    status: open
+    refs: [OPEN-02, "8-1-custom-tour-submit-private-7-day-rule"]
+  - epic: 2
+    action: >-
+      OPEN-01: Keep package currency configurable as valid ISO currency codes
+      (free-text ISO) until a supported closed currency list is decided.
+      Do not invent a closed list in Story 2.1.
+    owner: product
+    status: open
+    refs: [OPEN-01, "2-1-admin-package-create-edit-draft-publish"]
+  - epic: 2
+    action: >-
+      Story 2.3: Media max file-size limit remains product-configurable;
+      do not hard-code a final numeric max in implementation without a
+      product config decision.
+    owner: product
+    status: open
+    refs: ["2-3-package-media-upload-and-serving"]
+  - epic: 6
+    action: >-
+      OPEN-04 deferred: Do not introduce payment-window expiry notification
+      (FR-NOTIF-03a) unless OPEN-04 is explicitly approved. Story 6.4 omits it.
+    owner: product
+    status: open
+    refs: [OPEN-04, "6-4-reopen-and-extend-payment-window"]
+  - epic: 9
+    action: >-
+      OPEN-05: Do not invent additional Admin notification events beyond the
+      approved AD-17 / FR catalog. Notification Center (9.1) uses existing
+      event creation from Epics 5–8 only.
+    owner: product
+    status: open
+    refs: [OPEN-05, "9-1-notification-center-inbox"]
