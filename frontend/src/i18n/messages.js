@@ -49,10 +49,32 @@ export const messages = {
     duration: "{days} days / {nights} nights",
     coverAlt: "Cover image for {title}",
     coverEmpty: "No cover image",
-    detailPlaceholderTitle: "Package details",
-    detailPlaceholderBody:
-      "Full package detail arrives in a later story. This page reserves the route.",
-    detailPlaceholderId: "Package id: {id}",
+    galleryAlt: "Additional image {index} for {title}",
+    detailLoading: "Loading package details...",
+    detailNotFoundTitle: "Package not found",
+    detailNotFoundBody:
+      "This tour is unavailable or has not been published. Browse Explore for published packages.",
+    detailTravelTitle: "Travel information",
+    detailDestinationLabel: "Destination",
+    detailDurationLabel: "Duration",
+    detailStartingLabel: "Starting location",
+    detailDifficultyLabel: "Difficulty",
+    detailDatesTitle: "Available travel dates",
+    detailDatesEmpty: "No active travel dates are listed for this package.",
+    detailFullDescriptionTitle: "Full description",
+    detailIncludedTitle: "Included services",
+    detailExcludedTitle: "Excluded services",
+    detailItineraryTitle: "Itinerary",
+    detailCancellationTitle: "Cancellation policy",
+    detailAdditionalTitle: "Additional information",
+    bookNow: "Book Now",
+    bookingUnavailable:
+      "This package is not available for booking right now.",
+    bookingUnavailableNoDates:
+      "No qualifying travel dates are available for booking.",
+    bookingStubTitle: "Booking",
+    bookingStubBody:
+      "Booking for this package will open here in a later update. Your package selection is ready.",
     backToExplore: "Back to Explore",
     errors: {
       generic: "Something went wrong. Please try again.",

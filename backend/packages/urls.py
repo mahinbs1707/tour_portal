@@ -15,6 +15,7 @@ from packages.views import (
     AdminPackagePublishView,
     AdminPackageUnfeatureView,
     AdminPackageUnpublishView,
+    PublicPackageDetailView,
     PublicPackageListView,
 )
 
@@ -23,6 +24,11 @@ urlpatterns = [
         "",
         PublicPackageListView.as_view(),
         name="public-package-list",
+    ),
+    path(
+        "<uuid:pk>/",
+        PublicPackageDetailView.as_view(),
+        name="public-package-detail",
     ),
     path(
         "admin/",

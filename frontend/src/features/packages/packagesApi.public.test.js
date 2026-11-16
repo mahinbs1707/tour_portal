@@ -11,6 +11,7 @@ vi.mock("../../services/apiClient.js", () => ({
 import {
   PACKAGE_LIST_PAGE_SIZE,
   formatPackagePrice,
+  getPublishedPackage,
   listPublishedPackages,
 } from "./packagesApi.js";
 
@@ -61,5 +62,22 @@ describe("packagesApi public catalog helpers", () => {
   it("formatPackagePrice stays amount CODE without dollar sign", () => {
     expect(formatPackagePrice("12500.00", "bdt")).toBe("12,500.00 BDT");
     expect(formatPackagePrice("12500.00", "bdt")).not.toMatch(/\$/);
+  });
+
+  it("getPublishedPackage requests public detail by id", async () => {
+    await getPublishedPackage("pkg-abc");
+    expect(apiRequestMock).toHaveBeenCalledWith("/api/packages/pkg-abc/", {
+      method: "GET",
+    });
+  });
+
+  it("getPublishedPackage rejects null or empty id without fetching", async () => {
+    for (const id of [null, undefined, "", "   "]) {
+      apiRequestMock.mockClear();
+      await expect(getPublishedPackage(id)).rejects.toThrow(
+        "Package id is required.",
+      );
+      expect(apiRequestMock).not.toHaveBeenCalled();
+    }
   });
 });

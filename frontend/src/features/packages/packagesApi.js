@@ -29,6 +29,14 @@ export function listPublishedPackages(pageOrOpts = 1) {
   return apiRequest(`/api/packages/${query}`, { method: "GET" });
 }
 
+/** GET /api/packages/:id/ — published-only public detail (Story 3.2). */
+export function getPublishedPackage(id) {
+  if (id == null || String(id).trim() === "") {
+    return Promise.reject(new Error("Package id is required."));
+  }
+  return apiRequest(`/api/packages/${id}/`, { method: "GET" });
+}
+
 /**
  * GET /api/packages/admin/ — paginated Admin list.
  * Accepts `{ page, status, featured }` or a legacy page number.

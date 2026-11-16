@@ -11,7 +11,7 @@ import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
 import { AdminPackageFormPage } from "./features/packages/AdminPackageFormPage.jsx";
 import { AdminPackagesPage } from "./features/packages/AdminPackagesPage.jsx";
 import { ExplorePage } from "./features/packages/ExplorePage.jsx";
-import { PackageDetailPlaceholderPage } from "./features/packages/PackageDetailPlaceholderPage.jsx";
+import { PackageDetailPage } from "./features/packages/PackageDetailPage.jsx";
 import { LandingPage } from "./features/public/LandingPage.jsx";
 import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
 import { messages } from "./i18n/messages.js";
@@ -25,11 +25,32 @@ export function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
         <Route path="explore" element={<ExplorePage />} />
-        <Route path="explore/:id" element={<PackageDetailPlaceholderPage />} />
+        <Route path="explore/:id" element={<PackageDetailPage />} />
         <Route path="ai" element={<PlaceholderPage title={messages.nav.ai} />} />
         <Route path="sign-in" element={<SignInPage />} />
         <Route path="sign-up" element={<SignUpPage />} />
         <Route path="sign-out" element={<SignOutPage />} />
+      </Route>
+
+      <Route
+        path="app/bookings/new"
+        element={
+          <RequireAuth>
+            <RequireRole role="CUSTOMER">
+              <CustomerLayout />
+            </RequireRole>
+          </RequireAuth>
+        }
+      >
+        <Route
+          index
+          element={
+            <PlaceholderPage
+              title={messages.explore.bookingStubTitle}
+              body={messages.explore.bookingStubBody}
+            />
+          }
+        />
       </Route>
 
       <Route

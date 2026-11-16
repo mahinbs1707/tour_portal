@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import (
+    ListAPIView,
+    ListCreateAPIView,
+    RetrieveAPIView,
+    RetrieveUpdateAPIView,
+)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -15,9 +20,10 @@ from packages.models import AvailableDate, PackageStatus, TourPackage
 from packages.serializers import (
     AvailableDateSerializer,
     PublicPackageCardSerializer,
+    PublicPackageDetailSerializer,
     TourPackageSerializer,
 )
-from packages.services import PackageService, published
+from packages.services import PackageService, get_published, published
 
 # Shared default page size for Admin + public catalog lists (Story 3.1 / AD-11).
 PACKAGE_LIST_PAGE_SIZE = 20
@@ -40,6 +46,17 @@ class PublicPackageListView(ListAPIView):
 
     def get_queryset(self):
         return published()
+
+
+class PublicPackageDetailView(RetrieveAPIView):
+    """GET /api/packages/<uuid:pk>/ — published-only detail; draft → 404."""
+
+    permission_classes = [AllowAny]
+    serializer_class = PublicPackageDetailSerializer
+    lookup_field = "pk"
+
+    def get_object(self):
+        return get_published(self.kwargs["pk"])
 
 
 def _validation_response(exc: DjangoValidationError) -> Response:

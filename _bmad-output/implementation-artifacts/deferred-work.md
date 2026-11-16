@@ -87,3 +87,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-featured-flag-and-admin-packages-list-ux.md`
   summary: Filter-active empty-state title/body copy is untested
   evidence: Verification-gap review; Clear filters control and API filter shapes were patched; copy-only empty branch left without a dedicated Vitest case
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-package-detail-page.md`
+  summary: Guest Book Now post-auth returns to detail rather than booking stub; booking stub route smoke optional until Epic 5
+  evidence: Story 3.2 intentionally gates/links only; Epic 5 owns booking form and auth-return-to-booking

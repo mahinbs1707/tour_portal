@@ -1,10 +1,11 @@
-"""Package serializers — Admin write shape (Story 2.1) + public card (Story 3.1)."""
+"""Package serializers — Admin write + public card/detail (Stories 2.1 / 3.1 / 3.2)."""
 
 from __future__ import annotations
 
 from rest_framework import serializers
 
 from packages.models import AvailableDate, TourPackage
+from packages.services import active_available_dates, compute_bookability
 
 WRITABLE_FIELDS = (
     "title",
@@ -128,3 +129,81 @@ class PublicPackageCardSerializer(serializers.ModelSerializer):
             "currency",
         )
         read_only_fields = fields
+
+
+class PublicAvailableDateSerializer(serializers.ModelSerializer):
+    """Active public travel date row (Story 3.2)."""
+
+    class Meta:
+        model = AvailableDate
+        fields = ("id", "tour_date")
+        read_only_fields = fields
+
+
+class PublicPackageDetailSerializer(serializers.ModelSerializer):
+    """
+    Read-only public detail — FR-CAT-06 sections + active dates + bookability.
+    Not the Admin serializer contract (Story 3.2).
+    """
+
+    available_dates = serializers.SerializerMethodField()
+    is_bookable = serializers.SerializerMethodField()
+    unavailable_reason = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TourPackage
+        fields = (
+            "id",
+            "title",
+            "cover_image",
+            "additional_images",
+            "short_description",
+            "full_description",
+            "destinations",
+            "duration_days",
+            "duration_nights",
+            "starting_location",
+            "available_dates",
+            "difficulty",
+            "base_price",
+            "currency",
+            "included_services",
+            "excluded_services",
+            "itinerary",
+            "cancellation_policy",
+            "additional_info",
+            "is_bookable",
+            "unavailable_reason",
+        )
+        read_only_fields = fields
+
+    def _active_dates_list(self, obj: TourPackage) -> list:
+        cache = self.context.setdefault("_detail_active_dates", {})
+        key = str(obj.pk)
+        if key not in cache:
+            cache[key] = list(active_available_dates(obj))
+        return cache[key]
+
+    def get_available_dates(self, obj: TourPackage):
+        return PublicAvailableDateSerializer(
+            self._active_dates_list(obj),
+            many=True,
+        ).data
+
+    def _bookability(self, obj: TourPackage) -> tuple[bool, str | None]:
+        cache = self.context.setdefault("_bookability_cache", {})
+        key = str(obj.pk)
+        if key not in cache:
+            cache[key] = compute_bookability(
+                obj,
+                active_dates=self._active_dates_list(obj),
+            )
+        return cache[key]
+
+    def get_is_bookable(self, obj: TourPackage) -> bool:
+        bookable, _ = self._bookability(obj)
+        return bookable
+
+    def get_unavailable_reason(self, obj: TourPackage) -> str | None:
+        bookable, reason = self._bookability(obj)
+        return None if bookable else reason

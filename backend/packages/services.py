@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 
 from audit.services import AuditService
 from packages.media import (
@@ -16,14 +18,57 @@ from packages.media import (
     save_package_image,
 )
 from packages.models import AvailableDate, PackageStatus, TourPackage
+from packages.validators import min_bookable_date
 
 TARGET_TYPE = "package"
 DATE_TARGET_TYPE = "available_date"
+
+UNAVAILABLE_NO_QUALIFYING_DATES = (
+    "No qualifying travel dates are available for booking."
+)
 
 
 def published():
     """Published catalog inventory only (public list / Explore)."""
     return TourPackage.objects.filter(status=PackageStatus.PUBLISHED)
+
+
+def get_published(pk) -> TourPackage:
+    """Published package by primary key, or 404 for draft/missing (public detail)."""
+    return get_object_or_404(published(), pk=pk)
+
+
+def active_available_dates(package: TourPackage):
+    """Active available dates for a package, earliest first."""
+    return AvailableDate.objects.filter(
+        package=package,
+        is_active=True,
+    ).order_by("tour_date")
+
+
+def compute_bookability(
+    package: TourPackage,
+    *,
+    as_of: date | None = None,
+    active_dates: list[AvailableDate] | None = None,
+) -> tuple[bool, str | None]:
+    """
+    Bookable when published and ≥1 active AvailableDate with
+    tour_date >= min_bookable_date() (7 calendar days, BUSINESS_TIMEZONE).
+    Pass `active_dates` to reuse an already-fetched ordered list.
+    """
+    if package.status != PackageStatus.PUBLISHED:
+        return False, UNAVAILABLE_NO_QUALIFYING_DATES
+    minimum = min_bookable_date(as_of=as_of)
+    if active_dates is None:
+        is_bookable = active_available_dates(package).filter(
+            tour_date__gte=minimum,
+        ).exists()
+    else:
+        is_bookable = any(row.tour_date >= minimum for row in active_dates)
+    if is_bookable:
+        return True, None
+    return False, UNAVAILABLE_NO_QUALIFYING_DATES
 
 
 def _date_snapshot(row: AvailableDate) -> dict[str, Any]:

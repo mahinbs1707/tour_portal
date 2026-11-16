@@ -244,20 +244,4 @@ describe("Explore public catalog UI", () => {
     expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
   });
 
-  it("renders detail placeholder at /explore/:id", async () => {
-    renderExplore("/explore/pkg-stub-9");
-    expect(
-      await screen.findByTestId("package-detail-placeholder"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: messages.explore.detailPlaceholderTitle,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        messages.explore.detailPlaceholderId.replace("{id}", "pkg-stub-9"),
-      ),
-    ).toBeInTheDocument();
-  });
 });
