@@ -9,6 +9,7 @@ from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 
 from audit.services import AuditService
@@ -41,6 +42,133 @@ def featured_published():
 def get_published(pk) -> TourPackage:
     """Published package by primary key, or 404 for draft/missing (public detail)."""
     return get_object_or_404(published(), pk=pk)
+
+
+def _optional_query_str(params, key: str) -> str | None:
+    raw = params.get(key) if hasattr(params, "get") else None
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
+
+
+def _escape_like(term: str) -> str:
+    """Escape LIKE wildcards (%, _, \\) for literal substring matching."""
+    return (
+        str(term)
+        .replace("\\", "\\\\")
+        .replace("%", r"\%")
+        .replace("_", r"\_")
+    )
+
+
+def _parse_price(raw: str, field: str, errors: dict[str, list[str]]) -> Decimal | None:
+    try:
+        value = Decimal(raw)
+    except (InvalidOperation, ValueError):
+        errors[field] = ["Enter a valid number."]
+        return None
+    if not value.is_finite():
+        errors[field] = ["Enter a valid number."]
+        return None
+    if value < 0:
+        errors[field] = ["Price cannot be negative."]
+        return None
+    return value
+
+
+def parse_public_catalog_filters(params) -> dict[str, Any]:
+    """
+    Validate public catalog search/filter query params (Story 3.4).
+    Returns a cleaned dict; raises ValidationError with field errors on invalid input.
+    """
+    errors: dict[str, list[str]] = {}
+    cleaned: dict[str, Any] = {}
+
+    q = _optional_query_str(params, "q")
+    if q is not None:
+        cleaned["q"] = q
+
+    destination = _optional_query_str(params, "destination")
+    if destination is not None:
+        cleaned["destination"] = destination
+
+    min_price_raw = _optional_query_str(params, "min_price")
+    max_price_raw = _optional_query_str(params, "max_price")
+    min_price: Decimal | None = None
+    max_price: Decimal | None = None
+
+    if min_price_raw is not None:
+        min_price = _parse_price(min_price_raw, "min_price", errors)
+        if min_price is not None:
+            cleaned["min_price"] = min_price
+
+    if max_price_raw is not None:
+        max_price = _parse_price(max_price_raw, "max_price", errors)
+        if max_price is not None:
+            cleaned["max_price"] = max_price
+
+    if (
+        min_price is not None
+        and max_price is not None
+        and "min_price" not in errors
+        and "max_price" not in errors
+        and min_price > max_price
+    ):
+        errors["min_price"] = ["Minimum price cannot be greater than maximum price."]
+        errors["max_price"] = ["Maximum price cannot be less than minimum price."]
+
+    duration_raw = _optional_query_str(params, "duration_days")
+    if duration_raw is not None:
+        try:
+            duration_days = int(duration_raw)
+        except (TypeError, ValueError):
+            errors["duration_days"] = ["Enter a valid integer."]
+        else:
+            if duration_days < 1:
+                errors["duration_days"] = ["Duration must be at least 1."]
+            else:
+                cleaned["duration_days"] = duration_days
+
+    if errors:
+        raise ValidationError(errors)
+    return cleaned
+
+
+def _icontains_escaped(qs: QuerySet, fields: tuple[str, ...], term: str) -> QuerySet:
+    """
+    Case-insensitive substring match with LIKE metacharacters escaped.
+    Uses ESCAPE so %/_ are literal; avoids ORM PatternLookup double-escaping.
+    """
+    pattern = f"%{_escape_like(term)}%"
+    table = qs.model._meta.db_table
+    clauses = " OR ".join(
+        f'UPPER("{table}"."{field}") LIKE UPPER(%s) ESCAPE \'\\\''
+        for field in fields
+    )
+    return qs.extra(where=[f"({clauses})"], params=[pattern] * len(fields))
+
+
+def apply_public_catalog_filters(qs: QuerySet, filters: dict[str, Any]) -> QuerySet:
+    """
+    Apply cleaned public catalog filters from parse_public_catalog_filters.
+    Does not re-parse or stringify; callers must pass the cleaned dict.
+    """
+    if "q" in filters:
+        qs = _icontains_escaped(
+            qs,
+            ("title", "destinations", "short_description", "full_description"),
+            filters["q"],
+        )
+    if "destination" in filters:
+        qs = _icontains_escaped(qs, ("destinations",), filters["destination"])
+    if "min_price" in filters:
+        qs = qs.filter(base_price__gte=filters["min_price"])
+    if "max_price" in filters:
+        qs = qs.filter(base_price__lte=filters["max_price"])
+    if "duration_days" in filters:
+        qs = qs.filter(duration_days=filters["duration_days"])
+    return qs
 
 
 def active_available_dates(package: TourPackage):

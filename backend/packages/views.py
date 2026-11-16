@@ -25,8 +25,10 @@ from packages.serializers import (
 )
 from packages.services import (
     PackageService,
+    apply_public_catalog_filters,
     featured_published,
     get_published,
+    parse_public_catalog_filters,
     published,
 )
 
@@ -45,7 +47,7 @@ class PublicPackagePagination(PageNumberPagination):
 
 
 class PublicPackageListView(ListAPIView):
-    """GET /api/packages/ — published-only catalog cards; optional ?featured=true|false."""
+    """GET /api/packages/ — published-only catalog; featured + search/filter params."""
 
     permission_classes = [AllowAny]
     serializer_class = PublicPackageCardSerializer
@@ -58,15 +60,31 @@ class PublicPackageListView(ListAPIView):
                 {"featured": ["Invalid featured filter. Use true or false."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        try:
+            self._public_catalog_filters = parse_public_catalog_filters(
+                request.query_params
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
         return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         featured_param = self.request.query_params.get("featured")
         if featured_param is not None and featured_param.lower() in _FEATURED_TRUE_FALSE:
             if featured_param.lower() == "true":
-                return featured_published()
-            return published().filter(is_featured=False)
-        return published()
+                qs = featured_published()
+            else:
+                qs = published().filter(is_featured=False)
+        else:
+            qs = published()
+        filters = getattr(self, "_public_catalog_filters", None)
+        if filters is None:
+            try:
+                filters = parse_public_catalog_filters(self.request.query_params)
+            except DjangoValidationError:
+                # Avoid unhandled 500 on paths that skip list(); return empty published set.
+                return published().none()
+        return apply_public_catalog_filters(qs, filters)
 
 
 class PublicPackageDetailView(RetrieveAPIView):

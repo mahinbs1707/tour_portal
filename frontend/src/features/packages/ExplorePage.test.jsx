@@ -244,4 +244,287 @@ describe("Explore public catalog UI", () => {
     expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
   });
 
+  it("applies search and filters on submit and resets to page 1", async () => {
+    const user = userEvent.setup();
+    listPublishedPackagesMock
+      .mockResolvedValueOnce({ count: 0, results: [] })
+      .mockResolvedValueOnce({
+        count: 1,
+        results: [
+          {
+            id: "pkg-filtered",
+            title: "Sylhet Tea",
+            cover_image: "/media/packages/tea.jpg",
+            short_description: "Tea trails.",
+            destinations: "Sylhet",
+            duration_days: 3,
+            duration_nights: 2,
+            base_price: "11000.00",
+            currency: "BDT",
+          },
+        ],
+      });
+
+    renderExplore();
+    expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
+
+    await user.type(screen.getByTestId("explore-search-q"), "tea");
+    await user.type(screen.getByTestId("explore-filter-destination"), "Sylhet");
+    await user.type(screen.getByTestId("explore-filter-min-price"), "10000");
+    await user.type(screen.getByTestId("explore-filter-max-price"), "15000");
+    await user.type(screen.getByTestId("explore-filter-duration"), "3");
+    await user.click(screen.getByTestId("explore-apply-filters"));
+
+    expect(await screen.findByText("Sylhet Tea")).toBeInTheDocument();
+    expect(listPublishedPackagesMock).toHaveBeenLastCalledWith({
+      page: 1,
+      q: "tea",
+      destination: "Sylhet",
+      min_price: "10000",
+      max_price: "15000",
+      duration_days: "3",
+    });
+  });
+
+  it("shows no-match empty state with clear restoring default catalog", async () => {
+    const user = userEvent.setup();
+    listPublishedPackagesMock
+      .mockResolvedValueOnce({
+        count: 1,
+        results: [
+          {
+            id: "pkg-catalog",
+            title: "Catalog Tour",
+            cover_image: "/media/packages/c.jpg",
+            short_description: "Visible.",
+            destinations: "Dhaka",
+            duration_days: 2,
+            duration_nights: 1,
+            base_price: "5000.00",
+            currency: "BDT",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ count: 0, results: [] })
+      .mockResolvedValueOnce({
+        count: 1,
+        results: [
+          {
+            id: "pkg-catalog",
+            title: "Catalog Tour",
+            cover_image: "/media/packages/c.jpg",
+            short_description: "Visible.",
+            destinations: "Dhaka",
+            duration_days: 2,
+            duration_nights: 1,
+            base_price: "5000.00",
+            currency: "BDT",
+          },
+        ],
+      });
+
+    renderExplore();
+    expect(await screen.findByText("Catalog Tour")).toBeInTheDocument();
+
+    await user.type(screen.getByTestId("explore-search-q"), "nowhere");
+    await user.click(screen.getByTestId("explore-apply-filters"));
+
+    expect(
+      await screen.findByRole("heading", { name: messages.explore.noMatchTitle }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("explore-no-match")).toBeInTheDocument();
+    expect(screen.queryByTestId("explore-empty")).not.toBeInTheDocument();
+    expect(screen.getByText(messages.explore.noMatchBody)).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("explore-no-match-clear"));
+    expect(await screen.findByText("Catalog Tour")).toBeInTheDocument();
+    expect(listPublishedPackagesMock).toHaveBeenLastCalledWith({ page: 1 });
+    expect(screen.getByTestId("explore-search-q")).toHaveValue("");
+  });
+
+  it("Apply from page 2 resets to page 1 with filters", async () => {
+    const user = userEvent.setup();
+    const pageOne = {
+      count: 21,
+      next: "http://example.test/api/packages/?page=2",
+      previous: null,
+      results: [
+        {
+          id: "pkg-p1",
+          title: "Page One Tour",
+          cover_image: "/media/packages/one.jpg",
+          short_description: "First page.",
+          destinations: "Sylhet",
+          duration_days: 3,
+          duration_nights: 2,
+          base_price: "9000.00",
+          currency: "BDT",
+        },
+      ],
+    };
+    listPublishedPackagesMock
+      .mockResolvedValueOnce(pageOne)
+      .mockResolvedValueOnce({
+        ...pageOne,
+        results: [{ ...pageOne.results[0], id: "pkg-p2", title: "Page Two Tour" }],
+        next: null,
+        previous: "http://example.test/api/packages/",
+      })
+      .mockResolvedValueOnce({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [
+          {
+            id: "pkg-applied",
+            title: "Filtered From Page Two",
+            cover_image: "/media/packages/f.jpg",
+            short_description: "After apply.",
+            destinations: "Sylhet",
+            duration_days: 3,
+            duration_nights: 2,
+            base_price: "9000.00",
+            currency: "BDT",
+          },
+        ],
+      });
+
+    renderExplore();
+    expect(await screen.findByText("Page One Tour")).toBeInTheDocument();
+    await user.click(screen.getByTestId("explore-next-page"));
+    expect(await screen.findByText("Page Two Tour")).toBeInTheDocument();
+
+    await user.type(screen.getByTestId("explore-search-q"), "Filtered");
+    await user.click(screen.getByTestId("explore-apply-filters"));
+
+    expect(await screen.findByText("Filtered From Page Two")).toBeInTheDocument();
+    expect(listPublishedPackagesMock).toHaveBeenLastCalledWith({
+      page: 1,
+      q: "Filtered",
+    });
+  });
+
+  it("pagination next keeps applied filters", async () => {
+    const user = userEvent.setup();
+    listPublishedPackagesMock
+      .mockResolvedValueOnce({ count: 0, results: [] })
+      .mockResolvedValueOnce({
+        count: 21,
+        next: "http://example.test/api/packages/?page=2&q=tea",
+        previous: null,
+        results: [
+          {
+            id: "pkg-f1",
+            title: "Tea Page One",
+            cover_image: "/media/packages/t1.jpg",
+            short_description: "First.",
+            destinations: "Sylhet",
+            duration_days: 3,
+            duration_nights: 2,
+            base_price: "9000.00",
+            currency: "BDT",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        count: 21,
+        next: null,
+        previous: "http://example.test/api/packages/?q=tea",
+        results: [
+          {
+            id: "pkg-f2",
+            title: "Tea Page Two",
+            cover_image: "/media/packages/t2.jpg",
+            short_description: "Second.",
+            destinations: "Sylhet",
+            duration_days: 3,
+            duration_nights: 2,
+            base_price: "9000.00",
+            currency: "BDT",
+          },
+        ],
+      });
+
+    renderExplore();
+    expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
+    await user.type(screen.getByTestId("explore-search-q"), "tea");
+    await user.click(screen.getByTestId("explore-apply-filters"));
+    expect(await screen.findByText("Tea Page One")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("explore-next-page"));
+    expect(await screen.findByText("Tea Page Two")).toBeInTheDocument();
+    expect(listPublishedPackagesMock).toHaveBeenLastCalledWith({
+      page: 2,
+      q: "tea",
+    });
+  });
+
+  it("explore-clear-filters restores default catalog and clears controls", async () => {
+    const user = userEvent.setup();
+    listPublishedPackagesMock
+      .mockResolvedValueOnce({ count: 0, results: [] })
+      .mockResolvedValueOnce({
+        count: 1,
+        results: [
+          {
+            id: "pkg-hit",
+            title: "Hit Tour",
+            cover_image: "/media/packages/h.jpg",
+            short_description: "Match.",
+            destinations: "Dhaka",
+            duration_days: 2,
+            duration_nights: 1,
+            base_price: "5000.00",
+            currency: "BDT",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        count: 1,
+        results: [
+          {
+            id: "pkg-default",
+            title: "Default Tour",
+            cover_image: "/media/packages/d.jpg",
+            short_description: "Restored.",
+            destinations: "Dhaka",
+            duration_days: 2,
+            duration_nights: 1,
+            base_price: "5000.00",
+            currency: "BDT",
+          },
+        ],
+      });
+
+    renderExplore();
+    expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
+    await user.type(screen.getByTestId("explore-search-q"), "Hit");
+    await user.type(screen.getByTestId("explore-filter-destination"), "Dhaka");
+    await user.click(screen.getByTestId("explore-apply-filters"));
+    expect(await screen.findByText("Hit Tour")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("explore-clear-filters"));
+    expect(await screen.findByText("Default Tour")).toBeInTheDocument();
+    expect(listPublishedPackagesMock).toHaveBeenLastCalledWith({ page: 1 });
+    expect(screen.getByTestId("explore-search-q")).toHaveValue("");
+    expect(screen.getByTestId("explore-filter-destination")).toHaveValue("");
+  });
+
+  it("400 ApiError shows error banner with message", async () => {
+    listPublishedPackagesMock.mockRejectedValue(
+      new ApiError({
+        status: 400,
+        fieldErrors: { min_price: ["Price cannot be negative."] },
+        nonFieldErrors: [],
+        raw: null,
+      }),
+    );
+    renderExplore();
+    expect(await screen.findByTestId("explore-error")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Price cannot be negative.",
+    );
+    expect(screen.queryByTestId("explore-empty")).not.toBeInTheDocument();
+  });
+
 });

@@ -23,10 +23,38 @@ function normalizeFeaturedParam(raw) {
   return null;
 }
 
+/** Omit blank search/filter values from the public catalog query. */
+function appendCatalogFilterParams(params, opts) {
+  const q = opts.q == null ? "" : String(opts.q).trim();
+  if (q) {
+    params.set("q", q);
+  }
+  const destination =
+    opts.destination == null ? "" : String(opts.destination).trim();
+  if (destination) {
+    params.set("destination", destination);
+  }
+  const minPrice =
+    opts.min_price == null ? "" : String(opts.min_price).trim();
+  if (minPrice) {
+    params.set("min_price", minPrice);
+  }
+  const maxPrice =
+    opts.max_price == null ? "" : String(opts.max_price).trim();
+  if (maxPrice) {
+    params.set("max_price", maxPrice);
+  }
+  const duration =
+    opts.duration_days == null ? "" : String(opts.duration_days).trim();
+  if (duration) {
+    params.set("duration_days", duration);
+  }
+}
+
 /**
  * GET /api/packages/ — paginated public published-only catalog.
- * Accepts `{ page, featured }` or a legacy page number.
- * `featured: true|false` maps to `?featured=true|false` (server-authoritative).
+ * Accepts `{ page, featured, q, destination, min_price, max_price, duration_days }`
+ * or a legacy page number. Filters are server-authoritative (Story 3.4).
  */
 export function listPublishedPackages(pageOrOpts = 1) {
   const opts =
@@ -42,6 +70,7 @@ export function listPublishedPackages(pageOrOpts = 1) {
   if (featured !== null) {
     params.set("featured", featured);
   }
+  appendCatalogFilterParams(params, opts);
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest(`/api/packages/${query}`, { method: "GET" });
 }

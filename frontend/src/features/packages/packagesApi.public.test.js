@@ -97,6 +97,39 @@ describe("packagesApi public catalog helpers", () => {
     );
   });
 
+  it("listPublishedPackages includes search and filter params", async () => {
+    await listPublishedPackages({
+      page: 2,
+      q: "tea",
+      destination: "Sylhet",
+      min_price: "10000",
+      max_price: "15000",
+      duration_days: "3",
+    });
+    const calledUrl = apiRequestMock.mock.calls[0][0];
+    expect(calledUrl.startsWith("/api/packages/?")).toBe(true);
+    const query = new URLSearchParams(calledUrl.split("?")[1]);
+    expect(query.get("page")).toBe("2");
+    expect(query.get("q")).toBe("tea");
+    expect(query.get("destination")).toBe("Sylhet");
+    expect(query.get("min_price")).toBe("10000");
+    expect(query.get("max_price")).toBe("15000");
+    expect(query.get("duration_days")).toBe("3");
+  });
+
+  it("listPublishedPackages omits blank search and filter values", async () => {
+    await listPublishedPackages({
+      q: "  ",
+      destination: "",
+      min_price: null,
+      max_price: undefined,
+      duration_days: "  ",
+    });
+    expect(apiRequestMock).toHaveBeenCalledWith("/api/packages/", {
+      method: "GET",
+    });
+  });
+
   it("listFeaturedPackages always requests featured=true", async () => {
     await listFeaturedPackages({ page: 1 });
     expect(apiRequestMock).toHaveBeenCalledWith(
