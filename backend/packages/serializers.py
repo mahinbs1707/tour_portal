@@ -1,4 +1,4 @@
-"""Admin package serializers (Story 2.1)."""
+"""Package serializers — Admin write shape (Story 2.1) + public card (Story 3.1)."""
 
 from __future__ import annotations
 
@@ -109,3 +109,22 @@ class AvailableDateSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "package", "is_active", "created_at", "updated_at")
+
+
+class PublicPackageCardSerializer(serializers.ModelSerializer):
+    """Read-only public catalog card — scoped fields only (Story 3.1)."""
+
+    class Meta:
+        model = TourPackage
+        fields = (
+            "id",
+            "title",
+            "cover_image",
+            "short_description",
+            "destinations",
+            "duration_days",
+            "duration_nights",
+            "base_price",
+            "currency",
+        )
+        read_only_fields = fields

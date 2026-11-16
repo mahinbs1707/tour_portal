@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-16-2026 13:35
+last_updated: 11-16-2026 15:25
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -46,15 +46,15 @@ development_status:
   1-6-role-aware-navigation-and-route-guards: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
-  2-1-admin-package-create-edit-draft-publish: review
-  2-2-available-dates-management-deactivate-never-hard-delete-with: review
-  2-3-package-media-upload-and-serving: review
-  2-4-featured-flag-and-admin-packages-list-ux: review
-  epic-2-retrospective: optional
+  epic-2: done
+  2-1-admin-package-create-edit-draft-publish: done
+  2-2-available-dates-management-deactivate-never-hard-delete-with: done
+  2-3-package-media-upload-and-serving: done
+  2-4-featured-flag-and-admin-packages-list-ux: done
+  epic-2-retrospective: done
 
-  epic-3: backlog
-  3-1-public-catalog-listing: backlog
+  epic-3: in-progress
+  3-1-public-catalog-listing: review
   3-2-package-detail-page: backlog
   3-3-landing-hero-and-featured-packages: backlog
   3-4-server-side-search-and-filters: backlog
@@ -149,3 +149,24 @@ action_items:
     owner: product
     status: open
     refs: [OPEN-05, "9-1-notification-center-inbox"]
+  - id: "epic-2-retro-item-7-when-docker-is-available-re-run-compose"
+    epic: 2
+    action: "When Docker is available, re-run Compose manage.py test packages for
+      Story 2.4 confidence"
+    owner: "quality"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-2-retro-2026-11-16.md"
+  - id: "epic-2-retro-item-8-before-epic-3-public-package-surfaces-th"
+    epic: 2
+    action: "Before Epic 3 public package surfaces thicken, decide whether to split
+      PackageService (media/dates vs lifecycle)"
+    owner: "developer"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-2-retro-2026-11-16.md"
+  - id: "epic-2-retro-item-9-prefer-flipping-sprint-story-keys-to-don"
+    epic: 2
+    action: "Prefer flipping sprint story keys to done at human acceptance of step-05
+      so retros detect cleanly"
+    owner: "delivery"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-2-retro-2026-11-16.md"

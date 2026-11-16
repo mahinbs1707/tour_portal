@@ -35,6 +35,29 @@ export const messages = {
     heading: "Tour Portal",
     subheading: "Discover thoughtfully curated tours with a premium coastal calm.",
   },
+  explore: {
+    title: "Explore",
+    subtitle: "Browse published tour packages from Tour Portal.",
+    loading: "Loading tours...",
+    emptyTitle: "No tours published yet",
+    emptyBody: "Check back soon, or return home while we prepare the catalog.",
+    emptyCta: "Back to home",
+    retry: "Retry",
+    prevPage: "Previous",
+    nextPage: "Next",
+    pageStatus: "Page {page} ({count} total)",
+    duration: "{days} days / {nights} nights",
+    coverAlt: "Cover image for {title}",
+    coverEmpty: "No cover image",
+    detailPlaceholderTitle: "Package details",
+    detailPlaceholderBody:
+      "Full package detail arrives in a later story. This page reserves the route.",
+    detailPlaceholderId: "Package id: {id}",
+    backToExplore: "Back to Explore",
+    errors: {
+      generic: "Something went wrong. Please try again.",
+    },
+  },
   customerHome: {
     title: "Customer home",
     body: "Your bookings and custom tours will appear here.",
@@ -80,7 +103,7 @@ export const messages = {
     clearFilters: "Clear filters",
     confirmPublishTitle: "Publish this package?",
     confirmPublishBody:
-      "Published packages become eligible for the public catalog once Explore ships.",
+      "Published packages become visible in the public Explore catalog.",
     confirmUnpublishTitle: "Unpublish this package?",
     confirmUnpublishBody:
       "The package leaves the catalog. Historical booking records stay intact when bookings exist. Featured status is cleared.",

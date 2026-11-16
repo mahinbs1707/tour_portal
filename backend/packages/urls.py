@@ -15,9 +15,15 @@ from packages.views import (
     AdminPackagePublishView,
     AdminPackageUnfeatureView,
     AdminPackageUnpublishView,
+    PublicPackageListView,
 )
 
 urlpatterns = [
+    path(
+        "",
+        PublicPackageListView.as_view(),
+        name="public-package-list",
+    ),
     path(
         "admin/",
         AdminPackageListCreateView.as_view(),

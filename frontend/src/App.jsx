@@ -10,6 +10,8 @@ import { SignUpPage } from "./features/auth/SignUpPage.jsx";
 import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
 import { AdminPackageFormPage } from "./features/packages/AdminPackageFormPage.jsx";
 import { AdminPackagesPage } from "./features/packages/AdminPackagesPage.jsx";
+import { ExplorePage } from "./features/packages/ExplorePage.jsx";
+import { PackageDetailPlaceholderPage } from "./features/packages/PackageDetailPlaceholderPage.jsx";
 import { LandingPage } from "./features/public/LandingPage.jsx";
 import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
 import { messages } from "./i18n/messages.js";
@@ -22,7 +24,8 @@ export function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
-        <Route path="explore" element={<PlaceholderPage title={messages.nav.explore} />} />
+        <Route path="explore" element={<ExplorePage />} />
+        <Route path="explore/:id" element={<PackageDetailPlaceholderPage />} />
         <Route path="ai" element={<PlaceholderPage title={messages.nav.ai} />} />
         <Route path="sign-in" element={<SignInPage />} />
         <Route path="sign-up" element={<SignUpPage />} />

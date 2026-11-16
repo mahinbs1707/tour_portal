@@ -1,22 +1,45 @@
-"""Admin package API views (IsAdminRole — AD-3 / AD-19)."""
+"""Package API views — Admin (IsAdminRole) + public catalog (AllowAny)."""
 
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import IsAdminRole
 from packages.models import AvailableDate, PackageStatus, TourPackage
-from packages.serializers import AvailableDateSerializer, TourPackageSerializer
-from packages.services import PackageService
+from packages.serializers import (
+    AvailableDateSerializer,
+    PublicPackageCardSerializer,
+    TourPackageSerializer,
+)
+from packages.services import PackageService, published
+
+# Shared default page size for Admin + public catalog lists (Story 3.1 / AD-11).
+PACKAGE_LIST_PAGE_SIZE = 20
 
 
 class AdminPackagePagination(PageNumberPagination):
-    page_size = 20
+    page_size = PACKAGE_LIST_PAGE_SIZE
+
+
+class PublicPackagePagination(PageNumberPagination):
+    page_size = PACKAGE_LIST_PAGE_SIZE
+
+
+class PublicPackageListView(ListAPIView):
+    """GET /api/packages/ — published-only catalog cards; no auth required."""
+
+    permission_classes = [AllowAny]
+    serializer_class = PublicPackageCardSerializer
+    pagination_class = PublicPackagePagination
+
+    def get_queryset(self):
+        return published()
 
 
 def _validation_response(exc: DjangoValidationError) -> Response:

@@ -1,5 +1,34 @@
 import { apiRequest } from "../../services/apiClient.js";
 
+/** Shared default page size for Admin + public catalog lists (Story 3.1). */
+export const PACKAGE_LIST_PAGE_SIZE = 20;
+
+function normalizeListPage(raw) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    return 1;
+  }
+  return n;
+}
+
+/**
+ * GET /api/packages/ — paginated public published-only catalog.
+ * Accepts `{ page }` or a legacy page number.
+ */
+export function listPublishedPackages(pageOrOpts = 1) {
+  const opts =
+    typeof pageOrOpts === "object" && pageOrOpts !== null
+      ? pageOrOpts
+      : { page: pageOrOpts };
+  const params = new URLSearchParams();
+  const page = normalizeListPage(opts.page ?? 1);
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return apiRequest(`/api/packages/${query}`, { method: "GET" });
+}
+
 /**
  * GET /api/packages/admin/ — paginated Admin list.
  * Accepts `{ page, status, featured }` or a legacy page number.

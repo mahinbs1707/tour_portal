@@ -21,6 +21,11 @@ TARGET_TYPE = "package"
 DATE_TARGET_TYPE = "available_date"
 
 
+def published():
+    """Published catalog inventory only (public list / Explore)."""
+    return TourPackage.objects.filter(status=PackageStatus.PUBLISHED)
+
+
 def _date_snapshot(row: AvailableDate) -> dict[str, Any]:
     return {
         "id": str(row.id),

@@ -35,6 +35,7 @@ aidlc/diagnostics/
 __pycache__/
 *.py[cod]
 .venv/
+.test-venv/
 venv/
 .pytest_cache/
 .coverage
