@@ -81,7 +81,7 @@ beforeEach(() => {
 });
 
 describe("Landing hero and featured packages", () => {
-  it("shows hero branding and Explore CTA", async () => {
+  it("shows hero branding with Explore primary and AI secondary CTAs", async () => {
     renderLanding();
 
     expect(await screen.findByTestId("landing-hero")).toBeInTheDocument();
@@ -93,6 +93,19 @@ describe("Landing hero and featured packages", () => {
     const heroCta = screen.getByTestId("landing-hero-cta");
     expect(heroCta).toHaveAttribute("href", "/explore");
     expect(heroCta).toHaveTextContent(messages.landing.heroCta);
+    const aiCta = screen.getByTestId("landing-hero-ai-cta");
+    expect(aiCta).toHaveAttribute("href", "/ai");
+    expect(aiCta).toHaveTextContent(messages.landing.heroAiCta);
+  });
+
+  it("secondary AI CTA navigates to /ai recommendations page", async () => {
+    renderLanding();
+    await screen.findByTestId("landing-hero");
+    await userEvent.click(screen.getByTestId("landing-hero-ai-cta"));
+    expect(await screen.findByTestId("ai-recommendations-page")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: messages.ai.title }),
+    ).toBeInTheDocument();
   });
 
   it("shows guest navigation to Explore, AI, Sign in, and Sign up", async () => {

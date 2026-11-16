@@ -35,6 +35,7 @@ export const messages = {
     heading: "Tour Portal",
     subheading: "Discover thoughtfully curated tours with a premium coastal calm.",
     heroCta: "Explore tours",
+    heroAiCta: "Find tours with AI",
     featuredTitle: "Featured tours",
     featuredSubtitle: "Hand-picked published packages ready to explore.",
     featuredLoading: "Loading featured tours...",
@@ -45,6 +46,39 @@ export const messages = {
     retry: "Retry",
     errors: {
       generic: "Something went wrong loading featured tours. Please try again.",
+    },
+  },
+  ai: {
+    eyebrow: "AI recommendations",
+    title: "Find tours with AI",
+    subtitle:
+      "Describe your destination, budget, duration, or interests. We match published tours only — never invented packages.",
+    promptLabel: "Your preferences",
+    promptPlaceholder:
+      "e.g. Beach weekend near Cox's Bazar for a family of four, under 20,000 BDT…",
+    promptHint: "Up to {max} characters. Leave blank? We’ll ask you to add preferences first.",
+    submit: "Get recommendations",
+    submitting: "Finding matches…",
+    loading: "Matching your preferences to published tours…",
+    resultsTitle: "Recommended for you",
+    resultsSubtitle: "Up to five published tours with a short why-match note.",
+    resultsStatus: "Showing {count} recommendations.",
+    cardBadge: "AI match",
+    whyLabel: "Why this matches",
+    emptyTitle: "No matching tours yet",
+    emptyBody:
+      "Nothing in the published catalog matched those preferences. Try a broader prompt, or browse Explore.",
+    failTitle: "Recommendations unavailable",
+    failBody:
+      "You can still browse and search published tours on Explore while we recover.",
+    exploreCta: "Explore tours",
+    errors: {
+      promptRequired: "Enter a preference prompt before submitting.",
+      promptTooLong: "Keep your prompt to {max} characters or fewer.",
+      validation: "Fix the highlighted prompt and try again.",
+      provider:
+        "The recommendation service is temporarily unavailable. Please try again later.",
+      generic: "Something went wrong. Please try again.",
     },
   },
   explore: {

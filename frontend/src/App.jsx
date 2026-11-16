@@ -14,6 +14,7 @@ import { ExplorePage } from "./features/packages/ExplorePage.jsx";
 import { PackageDetailPage } from "./features/packages/PackageDetailPage.jsx";
 import { LandingPage } from "./features/public/LandingPage.jsx";
 import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
+import { AiRecommendationsPage } from "./features/recommendations/AiRecommendationsPage.jsx";
 import { messages } from "./i18n/messages.js";
 import { AdminLayout } from "./layouts/AdminLayout.jsx";
 import { CustomerLayout } from "./layouts/CustomerLayout.jsx";
@@ -26,7 +27,7 @@ export function AppRoutes() {
         <Route index element={<LandingPage />} />
         <Route path="explore" element={<ExplorePage />} />
         <Route path="explore/:id" element={<PackageDetailPage />} />
-        <Route path="ai" element={<PlaceholderPage title={messages.nav.ai} />} />
+        <Route path="ai" element={<AiRecommendationsPage />} />
         <Route path="sign-in" element={<SignInPage />} />
         <Route path="sign-up" element={<SignUpPage />} />
         <Route path="sign-out" element={<SignOutPage />} />

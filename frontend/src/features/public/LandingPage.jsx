@@ -82,13 +82,22 @@ export function LandingPage() {
           <p className="mt-3 max-w-xl text-body-sm text-[var(--color-muted-foreground)] md:text-base">
             {messages.landing.subheading}
           </p>
-          <Link
-            to="/explore"
-            className="mt-6 inline-flex min-h-11 w-fit items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-foreground)] no-underline hover:bg-[var(--color-primary-hover)]"
-            data-testid="landing-hero-cta"
-          >
-            {messages.landing.heroCta}
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              to="/explore"
+              className="inline-flex min-h-11 w-fit items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-foreground)] no-underline hover:bg-[var(--color-primary-hover)]"
+              data-testid="landing-hero-cta"
+            >
+              {messages.landing.heroCta}
+            </Link>
+            <Link
+              to="/ai"
+              className="inline-flex min-h-11 w-fit items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-transparent px-5 font-semibold text-[var(--color-foreground)] no-underline hover:border-[var(--color-primary)]"
+              data-testid="landing-hero-ai-cta"
+            >
+              {messages.landing.heroAiCta}
+            </Link>
+          </div>
         </div>
       </section>
 

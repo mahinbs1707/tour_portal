@@ -115,3 +115,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-4-1-recommendation-service-and-api.md`
   summary: Add a deadline/timeout around provider.recommend for real upstream providers
   evidence: Current mock is local/sync; hangs are not a realistic MVP failure mode until a network LLM lands
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-ai-recommendations-ui.md`
+  summary: Clamp/sanitize long recommendation `why` text in the UI when real LLM providers land
+  evidence: Mock why is short; unbounded rationale can dominate card layout with future providers
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-ai-recommendations-ui.md`
+  summary: Add client AbortController timeout for hung `POST /api/recommendations/`
+  evidence: Loading can stick if the network never returns; revisit with provider SLO / real LLM
