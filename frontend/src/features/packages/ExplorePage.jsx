@@ -26,6 +26,52 @@ function filtersAreActive(filters) {
   );
 }
 
+function emptyLoadError() {
+  return { kind: null, message: "", fieldErrors: {} };
+}
+
+/** Map API failures so validation never looks like no-match / retry loops. */
+function toLoadError(err) {
+  if (err instanceof ApiError) {
+    const fieldErrors =
+      err.fieldErrors && typeof err.fieldErrors === "object"
+        ? err.fieldErrors
+        : {};
+    if (err.status === 400) {
+      return {
+        kind: "validation",
+        message: err.message || messages.explore.errors.validation,
+        fieldErrors,
+      };
+    }
+    if (err.status >= 500 || err.status === 0) {
+      return {
+        kind: "retryable",
+        message: err.message || messages.explore.errors.generic,
+        fieldErrors: {},
+      };
+    }
+    return {
+      kind: "failed",
+      message: err.message || messages.explore.errors.generic,
+      fieldErrors,
+    };
+  }
+  return {
+    kind: "retryable",
+    message: messages.explore.errors.generic,
+    fieldErrors: {},
+  };
+}
+
+function fieldErrorText(fieldErrors, field) {
+  const msgs = fieldErrors?.[field];
+  if (!Array.isArray(msgs) || msgs.length === 0) {
+    return "";
+  }
+  return msgs.join(" ");
+}
+
 /**
  * Public Explore catalog — published packages + server-side search/filters (3.1 / 3.4).
  */
@@ -36,7 +82,7 @@ export function ExplorePage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(emptyLoadError);
   const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const loadGenerationRef = useRef(0);
@@ -44,7 +90,7 @@ export function ExplorePage() {
   const loadPage = useCallback(async (targetPage, filters = appliedFilters) => {
     const generation = ++loadGenerationRef.current;
     setLoading(true);
-    setError("");
+    setLoadError(emptyLoadError());
     try {
       const opts = { page: targetPage };
       if (filters.q.trim()) {
@@ -71,7 +117,11 @@ export function ExplorePage() {
         setCount(0);
         setHasNext(false);
         setHasPrev(false);
-        setError(messages.explore.errors.generic);
+        setLoadError({
+          kind: "retryable",
+          message: messages.explore.errors.generic,
+          fieldErrors: {},
+        });
         return;
       }
       setPackages(data.results);
@@ -83,9 +133,7 @@ export function ExplorePage() {
       if (generation !== loadGenerationRef.current) {
         return;
       }
-      setError(
-        err instanceof ApiError ? err.message : messages.explore.errors.generic,
-      );
+      setLoadError(toLoadError(err));
       setPackages([]);
       setCount(0);
       setHasNext(false);
@@ -116,10 +164,22 @@ export function ExplorePage() {
 
   function handleClear() {
     setDraftFilters(EMPTY_FILTERS);
+    if (!filtersAreActive(appliedFilters)) {
+      // Filters already empty (e.g. validation error on cold load) — effect won't re-fire.
+      loadPage(1, EMPTY_FILTERS);
+      return;
+    }
     setAppliedFilters(EMPTY_FILTERS);
   }
 
   const searchActive = filtersAreActive(appliedFilters);
+  const hasLoadError = Boolean(loadError.kind);
+  const fieldErrors = loadError.fieldErrors || {};
+  const qFieldError = fieldErrorText(fieldErrors, "q");
+  const destinationFieldError = fieldErrorText(fieldErrors, "destination");
+  const minPriceFieldError = fieldErrorText(fieldErrors, "min_price");
+  const maxPriceFieldError = fieldErrorText(fieldErrors, "max_price");
+  const durationFieldError = fieldErrorText(fieldErrors, "duration_days");
 
   return (
     <section
@@ -137,6 +197,7 @@ export function ExplorePage() {
         className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={handleApply}
         data-testid="explore-search-form"
+        noValidate
       >
         <div className="sm:col-span-2 lg:col-span-3">
           <label className="text-label" htmlFor="explore-search-q">
@@ -149,8 +210,20 @@ export function ExplorePage() {
             value={draftFilters.q}
             onChange={(event) => updateDraft("q", event.target.value)}
             placeholder={messages.explore.searchPlaceholder}
+            maxLength={200}
+            aria-invalid={qFieldError ? "true" : undefined}
+            aria-describedby={qFieldError ? "explore-search-q-error" : undefined}
             data-testid="explore-search-q"
           />
+          {qFieldError ? (
+            <p
+              id="explore-search-q-error"
+              className="mt-1 text-body-sm text-[var(--color-destructive)]"
+              data-testid="explore-field-error-q"
+            >
+              {qFieldError}
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="text-label" htmlFor="explore-filter-destination">
@@ -163,8 +236,24 @@ export function ExplorePage() {
             value={draftFilters.destination}
             onChange={(event) => updateDraft("destination", event.target.value)}
             placeholder={messages.explore.destinationPlaceholder}
+            maxLength={200}
+            aria-invalid={destinationFieldError ? "true" : undefined}
+            aria-describedby={
+              destinationFieldError
+                ? "explore-filter-destination-error"
+                : undefined
+            }
             data-testid="explore-filter-destination"
           />
+          {destinationFieldError ? (
+            <p
+              id="explore-filter-destination-error"
+              className="mt-1 text-body-sm text-[var(--color-destructive)]"
+              data-testid="explore-field-error-destination"
+            >
+              {destinationFieldError}
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="text-label" htmlFor="explore-filter-min-price">
@@ -179,8 +268,21 @@ export function ExplorePage() {
             className={inputClass}
             value={draftFilters.min_price}
             onChange={(event) => updateDraft("min_price", event.target.value)}
+            aria-invalid={minPriceFieldError ? "true" : undefined}
+            aria-describedby={
+              minPriceFieldError ? "explore-filter-min-price-error" : undefined
+            }
             data-testid="explore-filter-min-price"
           />
+          {minPriceFieldError ? (
+            <p
+              id="explore-filter-min-price-error"
+              className="mt-1 text-body-sm text-[var(--color-destructive)]"
+              data-testid="explore-field-error-min-price"
+            >
+              {minPriceFieldError}
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="text-label" htmlFor="explore-filter-max-price">
@@ -195,8 +297,21 @@ export function ExplorePage() {
             className={inputClass}
             value={draftFilters.max_price}
             onChange={(event) => updateDraft("max_price", event.target.value)}
+            aria-invalid={maxPriceFieldError ? "true" : undefined}
+            aria-describedby={
+              maxPriceFieldError ? "explore-filter-max-price-error" : undefined
+            }
             data-testid="explore-filter-max-price"
           />
+          {maxPriceFieldError ? (
+            <p
+              id="explore-filter-max-price-error"
+              className="mt-1 text-body-sm text-[var(--color-destructive)]"
+              data-testid="explore-field-error-max-price"
+            >
+              {maxPriceFieldError}
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="text-label" htmlFor="explore-filter-duration">
@@ -213,8 +328,21 @@ export function ExplorePage() {
             onChange={(event) =>
               updateDraft("duration_days", event.target.value)
             }
+            aria-invalid={durationFieldError ? "true" : undefined}
+            aria-describedby={
+              durationFieldError ? "explore-filter-duration-error" : undefined
+            }
             data-testid="explore-filter-duration"
           />
+          {durationFieldError ? (
+            <p
+              id="explore-filter-duration-error"
+              className="mt-1 text-body-sm text-[var(--color-destructive)]"
+              data-testid="explore-field-error-duration"
+            >
+              {durationFieldError}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-3">
           <button
@@ -245,26 +373,40 @@ export function ExplorePage() {
         </p>
       ) : null}
 
-      {error ? (
+      {hasLoadError ? (
         <div className="mt-8" data-testid="explore-error">
           <p
             className="rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-3 py-2 text-body-sm text-[var(--color-destructive)]"
             role="alert"
           >
-            {error}
+            {loadError.message}
           </p>
-          <button
-            type="button"
-            className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold"
-            onClick={() => loadPage(1, appliedFilters)}
-            data-testid="explore-retry"
-          >
-            {messages.explore.retry}
-          </button>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {loadError.kind === "validation" ? (
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)]"
+                onClick={handleClear}
+                data-testid="explore-error-clear"
+              >
+                {messages.explore.clearFilters}
+              </button>
+            ) : null}
+            {loadError.kind === "retryable" ? (
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold"
+                onClick={() => loadPage(1, appliedFilters)}
+                data-testid="explore-retry"
+              >
+                {messages.explore.retry}
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
-      {!loading && !error && packages.length === 0 ? (
+      {!loading && !hasLoadError && packages.length === 0 ? (
         <div
           className="mt-10 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-card)] p-6"
           data-testid={searchActive ? "explore-no-match" : "explore-empty"}

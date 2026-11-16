@@ -102,6 +102,7 @@ export const messages = {
     backToExplore: "Back to Explore",
     errors: {
       generic: "Something went wrong. Please try again.",
+      validation: "Fix the highlighted filters and apply again, or clear them.",
     },
   },
   customerHome: {

@@ -95,3 +95,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-3-landing-hero-and-featured-packages.md`
   summary: Landing featured section shows only the first page (page size 20) with no pagination or truncation notice
   evidence: Agent decision for Story 3.3; revisit if featured inventory routinely exceeds one page
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-server-side-search-and-filters.md`
+  summary: Replace `QuerySet.extra` LIKE helper with Django expression APIs while keeping parameterized ESCAPE semantics
+  evidence: Walkthrough security elicitation — current `_icontains_escaped` is parameterized and intentional; refactor is maintenance, not Story 3.4 correctness
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-server-side-search-and-filters.md`
+  summary: Public catalog rate limiting / abuse controls for `GET /api/packages/` search
+  evidence: Walkthrough security elicitation — separately tracked hardening unless an approved NFR requires it in-story
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-server-side-search-and-filters.md`
+  summary: Optional FE numeric pre-validation for price/duration before submit
+  evidence: UX improvement only; backend remains authoritative for filter validation

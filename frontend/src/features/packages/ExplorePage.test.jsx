@@ -77,6 +77,7 @@ afterEach(() => {
 
 beforeEach(() => {
   mockMatchMedia(true);
+  listPublishedPackagesMock.mockReset();
   listPublishedPackagesMock.mockResolvedValue({ count: 0, results: [] });
 });
 
@@ -510,21 +511,58 @@ describe("Explore public catalog UI", () => {
     expect(screen.getByTestId("explore-filter-destination")).toHaveValue("");
   });
 
-  it("400 ApiError shows error banner with message", async () => {
-    listPublishedPackagesMock.mockRejectedValue(
-      new ApiError({
-        status: 400,
-        fieldErrors: { min_price: ["Price cannot be negative."] },
-        nonFieldErrors: [],
-        raw: null,
-      }),
-    );
+  it("400 ApiError shows field error, Clear primary, and never no-match or Retry", async () => {
+    const user = userEvent.setup();
+    listPublishedPackagesMock
+      .mockResolvedValueOnce({ count: 0, results: [] })
+      .mockRejectedValueOnce(
+        new ApiError({
+          status: 400,
+          fieldErrors: { min_price: ["Price cannot be negative."] },
+          nonFieldErrors: [],
+          raw: null,
+        }),
+      )
+      .mockResolvedValue({ count: 0, results: [] });
+
     renderExplore();
+    expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
+    await user.type(screen.getByTestId("explore-filter-min-price"), "-1");
+    await user.click(screen.getByTestId("explore-apply-filters"));
+
     expect(await screen.findByTestId("explore-error")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Price cannot be negative.",
     );
+    expect(screen.getByTestId("explore-field-error-min-price")).toHaveTextContent(
+      "Price cannot be negative.",
+    );
+    expect(screen.getByTestId("explore-error-clear")).toBeInTheDocument();
+    expect(screen.queryByTestId("explore-retry")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("explore-no-match")).not.toBeInTheDocument();
     expect(screen.queryByTestId("explore-empty")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("explore-error-clear"));
+    expect(await screen.findByTestId("explore-empty")).toBeInTheDocument();
+    expect(listPublishedPackagesMock).toHaveBeenLastCalledWith({ page: 1 });
+  });
+
+  it("5xx keeps Retry and does not show Clear as primary recovery", async () => {
+    listPublishedPackagesMock.mockRejectedValue(
+      new ApiError({
+        status: 503,
+        fieldErrors: {},
+        nonFieldErrors: ["Catalog unavailable."],
+        raw: null,
+      }),
+    );
+    renderExplore();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Catalog unavailable.",
+    );
+    expect(screen.getByTestId("explore-retry")).toBeInTheDocument();
+    expect(screen.queryByTestId("explore-error-clear")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("explore-no-match")).not.toBeInTheDocument();
   });
 
 });

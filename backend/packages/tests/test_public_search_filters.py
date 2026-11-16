@@ -384,3 +384,31 @@ class PublicSearchFilterAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         ids = [row["id"] for row in response.data["results"]]
         self.assertEqual(ids, [str(featured_match.id)])
+
+    def test_q_and_destination_over_200_chars_return_400(self):
+        from packages.services import PUBLIC_CATALOG_TEXT_MAX_LEN
+
+        oversized = "x" * (PUBLIC_CATALOG_TEXT_MAX_LEN + 1)
+        for field in ("q", "destination"):
+            response = self.client.get("/api/packages/", {field: oversized})
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                msg=field,
+            )
+            self.assertIn(field, response.data)
+            self.assertNotIn("results", response.data)
+
+    def test_exactly_200_char_q_and_destination_accepted(self):
+        from packages.services import PUBLIC_CATALOG_TEXT_MAX_LEN
+
+        exact = "y" * PUBLIC_CATALOG_TEXT_MAX_LEN
+        self.assertEqual(len(exact), PUBLIC_CATALOG_TEXT_MAX_LEN)
+        for field in ("q", "destination"):
+            response = self.client.get("/api/packages/", {field: exact})
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_200_OK,
+                msg=field,
+            )
+            self.assertIn("results", response.data)

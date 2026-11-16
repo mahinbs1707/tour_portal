@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.generics import (
     ListAPIView,
     ListCreateAPIView,
@@ -79,11 +80,14 @@ class PublicPackageListView(ListAPIView):
             qs = published()
         filters = getattr(self, "_public_catalog_filters", None)
         if filters is None:
+            # list() normally parses first. If skipped, still never mask invalid
+            # public input as HTTP 200 + empty results — surface as DRF 400.
             try:
                 filters = parse_public_catalog_filters(self.request.query_params)
-            except DjangoValidationError:
-                # Avoid unhandled 500 on paths that skip list(); return empty published set.
-                return published().none()
+            except DjangoValidationError as exc:
+                if hasattr(exc, "message_dict"):
+                    raise DRFValidationError(exc.message_dict) from exc
+                raise DRFValidationError(list(exc.messages)) from exc
         return apply_public_catalog_filters(qs, filters)
 
 

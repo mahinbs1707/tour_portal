@@ -44,6 +44,10 @@ def get_published(pk) -> TourPackage:
     return get_object_or_404(published(), pk=pk)
 
 
+# Public free-text filter fields — keep bounded (Story 3.4 walkthrough hardening).
+PUBLIC_CATALOG_TEXT_MAX_LEN = 200
+
+
 def _optional_query_str(params, key: str) -> str | None:
     raw = params.get(key) if hasattr(params, "get") else None
     if raw is None:
@@ -87,11 +91,21 @@ def parse_public_catalog_filters(params) -> dict[str, Any]:
 
     q = _optional_query_str(params, "q")
     if q is not None:
-        cleaned["q"] = q
+        if len(q) > PUBLIC_CATALOG_TEXT_MAX_LEN:
+            errors["q"] = [
+                f"Ensure this value has at most {PUBLIC_CATALOG_TEXT_MAX_LEN} characters."
+            ]
+        else:
+            cleaned["q"] = q
 
     destination = _optional_query_str(params, "destination")
     if destination is not None:
-        cleaned["destination"] = destination
+        if len(destination) > PUBLIC_CATALOG_TEXT_MAX_LEN:
+            errors["destination"] = [
+                f"Ensure this value has at most {PUBLIC_CATALOG_TEXT_MAX_LEN} characters."
+            ]
+        else:
+            cleaned["destination"] = destination
 
     min_price_raw = _optional_query_str(params, "min_price")
     max_price_raw = _optional_query_str(params, "max_price")

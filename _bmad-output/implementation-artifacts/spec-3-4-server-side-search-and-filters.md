@@ -79,6 +79,7 @@ context:
 - Added `parse_public_catalog_filters` / `apply_public_catalog_filters` in `backend/packages/services.py`; `PublicPackageListView` validates then applies `q`, `destination`, `min_price`, `max_price`, `duration_days` on published (and optional featured) querysets. Invalid numerics / min>max → 400 field errors.
 - Explore: submit-only filter form, Clear → unfiltered page 1, distinct `explore-no-match` empty vs catalog-empty; `listPublishedPackages` forwards filter params. No URL sync.
 - Verified: `packages` Django suite **77/77 OK** (SQLite); `npm test -- src/features/packages` **58/58 PASS**. Filters not synced to browser URL (per agent decision).
+- Walkthrough elicitation (error handling) — **applied correctness patches:** `q`/`destination` max 200 → 400; public list never masks invalid filters as 200+empty (DRF 400 instead of `.none()`); Explore distinguishes success / zero-match / failed request; HTTP 400 shows field errors + Clear primary (no Retry); Retry only for retryable/5xx. **Deferred:** `QuerySet.extra` refactor; public rate limit; FE numeric pre-validation (see `deferred-work.md`). Risk notes for reviewers: (1) validation vs no-match vs retryable must stay distinct, (2) length caps on free-text, (3) keep LIKE parameterized until expression refactor.
 
 ## Spec Change Log
 
@@ -104,5 +105,5 @@ context:
 ## Verification
 
 **Commands:**
-- `DJANGO_USE_SQLITE=1 … manage.py test packages` -- **80/80 OK** (post-review)
-- `npm test -- src/features/packages` -- **62/62 PASS** (post-review)
+- `DJANGO_USE_SQLITE=1 … manage.py test packages` -- **82/82 OK** (post walkthrough error-handling patches)
+- `npm test -- src/features/packages` -- **63/63 PASS** (post walkthrough error-handling patches)
