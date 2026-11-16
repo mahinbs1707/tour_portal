@@ -23,10 +23,17 @@ from packages.serializers import (
     PublicPackageDetailSerializer,
     TourPackageSerializer,
 )
-from packages.services import PackageService, get_published, published
+from packages.services import (
+    PackageService,
+    featured_published,
+    get_published,
+    published,
+)
 
 # Shared default page size for Admin + public catalog lists (Story 3.1 / AD-11).
 PACKAGE_LIST_PAGE_SIZE = 20
+
+_FEATURED_TRUE_FALSE = ("true", "false")
 
 
 class AdminPackagePagination(PageNumberPagination):
@@ -38,13 +45,27 @@ class PublicPackagePagination(PageNumberPagination):
 
 
 class PublicPackageListView(ListAPIView):
-    """GET /api/packages/ — published-only catalog cards; no auth required."""
+    """GET /api/packages/ — published-only catalog cards; optional ?featured=true|false."""
 
     permission_classes = [AllowAny]
     serializer_class = PublicPackageCardSerializer
     pagination_class = PublicPackagePagination
 
+    def list(self, request, *args, **kwargs):
+        featured_param = request.query_params.get("featured")
+        if featured_param is not None and featured_param.lower() not in _FEATURED_TRUE_FALSE:
+            return Response(
+                {"featured": ["Invalid featured filter. Use true or false."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
+        featured_param = self.request.query_params.get("featured")
+        if featured_param is not None and featured_param.lower() in _FEATURED_TRUE_FALSE:
+            if featured_param.lower() == "true":
+                return featured_published()
+            return published().filter(is_featured=False)
         return published()
 
 

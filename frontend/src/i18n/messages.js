@@ -34,6 +34,18 @@ export const messages = {
   landing: {
     heading: "Tour Portal",
     subheading: "Discover thoughtfully curated tours with a premium coastal calm.",
+    heroCta: "Explore tours",
+    featuredTitle: "Featured tours",
+    featuredSubtitle: "Hand-picked published packages ready to explore.",
+    featuredLoading: "Loading featured tours...",
+    emptyTitle: "No featured tours yet",
+    emptyBody:
+      "Featured packages will appear here when Admin marks published tours. Browse Explore meanwhile.",
+    emptyCta: "Explore tours",
+    retry: "Retry",
+    errors: {
+      generic: "Something went wrong loading featured tours. Please try again.",
+    },
   },
   explore: {
     title: "Explore",

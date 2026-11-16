@@ -33,6 +33,11 @@ def published():
     return TourPackage.objects.filter(status=PackageStatus.PUBLISHED)
 
 
+def featured_published():
+    """Published + featured inventory for Landing (public ?featured=true)."""
+    return published().filter(is_featured=True)
+
+
 def get_published(pk) -> TourPackage:
     """Published package by primary key, or 404 for draft/missing (public detail)."""
     return get_object_or_404(published(), pk=pk)

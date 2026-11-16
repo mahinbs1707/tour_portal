@@ -12,6 +12,7 @@ import {
   PACKAGE_LIST_PAGE_SIZE,
   formatPackagePrice,
   getPublishedPackage,
+  listFeaturedPackages,
   listPublishedPackages,
 } from "./packagesApi.js";
 
@@ -57,6 +58,51 @@ describe("packagesApi public catalog helpers", () => {
         method: "GET",
       });
     }
+  });
+
+  it("listPublishedPackages includes featured=true", async () => {
+    await listPublishedPackages({ featured: true });
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/packages/?featured=true",
+      { method: "GET" },
+    );
+  });
+
+  it("listPublishedPackages normalizes featured string case", async () => {
+    await listPublishedPackages({ featured: "TRUE" });
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/packages/?featured=true",
+      { method: "GET" },
+    );
+    apiRequestMock.mockClear();
+    await listPublishedPackages({ featured: "False" });
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/packages/?featured=false",
+      { method: "GET" },
+    );
+  });
+
+  it("listPublishedPackages omits non-canonical featured values", async () => {
+    await listPublishedPackages({ featured: "maybe" });
+    expect(apiRequestMock).toHaveBeenCalledWith("/api/packages/", {
+      method: "GET",
+    });
+  });
+
+  it("listPublishedPackages includes featured=false and page", async () => {
+    await listPublishedPackages({ page: 2, featured: false });
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/packages/?page=2&featured=false",
+      { method: "GET" },
+    );
+  });
+
+  it("listFeaturedPackages always requests featured=true", async () => {
+    await listFeaturedPackages({ page: 1 });
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/packages/?featured=true",
+      { method: "GET" },
+    );
   });
 
   it("formatPackagePrice stays amount CODE without dollar sign", () => {

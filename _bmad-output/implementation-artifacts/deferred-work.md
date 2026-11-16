@@ -91,3 +91,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-package-detail-page.md`
   summary: Guest Book Now post-auth returns to detail rather than booking stub; booking stub route smoke optional until Epic 5
   evidence: Story 3.2 intentionally gates/links only; Epic 5 owns booking form and auth-return-to-booking
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-landing-hero-and-featured-packages.md`
+  summary: Landing featured section shows only the first page (page size 20) with no pagination or truncation notice
+  evidence: Agent decision for Story 3.3; revisit if featured inventory routinely exceeds one page

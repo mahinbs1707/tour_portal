@@ -11,9 +11,22 @@ function normalizeListPage(raw) {
   return n;
 }
 
+/** Canonical `true`/`false` query value, or null when featured must be omitted. */
+function normalizeFeaturedParam(raw) {
+  if (raw === undefined || raw === null || raw === "") {
+    return null;
+  }
+  const normalized = String(raw).toLowerCase();
+  if (normalized === "true" || normalized === "false") {
+    return normalized;
+  }
+  return null;
+}
+
 /**
  * GET /api/packages/ — paginated public published-only catalog.
- * Accepts `{ page }` or a legacy page number.
+ * Accepts `{ page, featured }` or a legacy page number.
+ * `featured: true|false` maps to `?featured=true|false` (server-authoritative).
  */
 export function listPublishedPackages(pageOrOpts = 1) {
   const opts =
@@ -25,8 +38,21 @@ export function listPublishedPackages(pageOrOpts = 1) {
   if (page > 1) {
     params.set("page", String(page));
   }
+  const featured = normalizeFeaturedParam(opts.featured);
+  if (featured !== null) {
+    params.set("featured", featured);
+  }
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest(`/api/packages/${query}`, { method: "GET" });
+}
+
+/** Thin wrapper: GET /api/packages/?featured=true (Landing featured section). */
+export function listFeaturedPackages(pageOrOpts = 1) {
+  const opts =
+    typeof pageOrOpts === "object" && pageOrOpts !== null
+      ? pageOrOpts
+      : { page: pageOrOpts };
+  return listPublishedPackages({ ...opts, featured: true });
 }
 
 /** GET /api/packages/:id/ — published-only public detail (Story 3.2). */
