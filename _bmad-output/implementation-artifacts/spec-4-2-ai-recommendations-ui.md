@@ -79,7 +79,12 @@ context:
 
 ## Implementation Notes
 
+- `/ai` → `AiRecommendationsPage`; dedicated `RecommendationCard`; Landing secondary CTA; `PackageCard` untouched.
+- Review patches: aria-describedby, h3 titles, status/alert roles, id filter/dedupe, unmount generation bump, provider message typeof guard, generic-fail + title/cover tests.
+
 ## Spec Change Log
+
+- 2026-11-16 — Implemented Story 4.2 UI; review patches applied; tasks complete.
 
 ## Review Triage Log
 
