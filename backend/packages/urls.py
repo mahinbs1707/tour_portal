@@ -3,6 +3,9 @@
 from django.urls import path
 
 from packages.views import (
+    AdminAvailableDateDeactivateView,
+    AdminAvailableDateDetailView,
+    AdminAvailableDateListCreateView,
     AdminPackageDetailView,
     AdminPackageListCreateView,
     AdminPackagePublishView,
@@ -29,5 +32,20 @@ urlpatterns = [
         "admin/<uuid:pk>/unpublish/",
         AdminPackageUnpublishView.as_view(),
         name="admin-package-unpublish",
+    ),
+    path(
+        "admin/<uuid:package_id>/dates/",
+        AdminAvailableDateListCreateView.as_view(),
+        name="admin-available-date-list-create",
+    ),
+    path(
+        "admin/<uuid:package_id>/dates/<uuid:date_id>/",
+        AdminAvailableDateDetailView.as_view(),
+        name="admin-available-date-detail",
+    ),
+    path(
+        "admin/<uuid:package_id>/dates/<uuid:date_id>/deactivate/",
+        AdminAvailableDateDeactivateView.as_view(),
+        name="admin-available-date-deactivate",
     ),
 ]

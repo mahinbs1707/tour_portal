@@ -70,6 +70,24 @@ export const messages = {
     confirmUnpublishTitle: "Unpublish this package?",
     confirmUnpublishBody:
       "The package leaves the catalog. Historical booking records stay intact when bookings exist.",
+    datesTitle: "Available travel dates",
+    datesSubtitle:
+      "Add Admin-defined calendar options. No seat limits. Dates with bookings must be deactivated, not deleted.",
+    datesLoading: "Loading dates...",
+    datesEmpty: "No available dates yet.",
+    addDate: "Add date",
+    removeDate: "Remove",
+    deactivateDate: "Deactivate",
+    dateActive: "Active",
+    dateInactive: "Inactive",
+    advanceWarning:
+      "This date is within the next 7 calendar days (before {minDate}). Customers will not be able to book it until booking rules enforce the lead time; you can still save it for Admin planning.",
+    confirmRemoveDateTitle: "Remove this date?",
+    confirmRemoveDateBody:
+      "If no bookings reference it, the date is deleted. If bookings exist, removal is rejected — deactivate instead.",
+    confirmDeactivateDateTitle: "Deactivate this date?",
+    confirmDeactivateDateBody:
+      "The date stays on record but will not be offered for new bookings.",
     fields: {
       title: "Tour title",
       shortDescription: "Short description",
@@ -86,6 +104,7 @@ export const messages = {
       difficulty: "Difficulty (optional)",
       cancellationPolicy: "Cancellation policy (optional)",
       additionalInfo: "Additional information (optional)",
+      tourDate: "Travel date",
     },
     errors: {
       generic: "Something went wrong. Please try again.",

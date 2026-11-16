@@ -16,6 +16,7 @@ const {
   updateAdminPackageMock,
   getAdminPackageMock,
   unpublishAdminPackageMock,
+  listAdminPackageDatesMock,
 } = vi.hoisted(() => ({
   ensureCsrfMock: vi.fn().mockResolvedValue(undefined),
   meMock: vi.fn(),
@@ -25,6 +26,7 @@ const {
   updateAdminPackageMock: vi.fn(),
   getAdminPackageMock: vi.fn(),
   unpublishAdminPackageMock: vi.fn(),
+  listAdminPackageDatesMock: vi.fn(),
 }));
 
 vi.mock("../../services/apiClient.js", async () => {
@@ -48,6 +50,10 @@ vi.mock("./packagesApi.js", async () => {
     updateAdminPackage: updateAdminPackageMock,
     getAdminPackage: getAdminPackageMock,
     unpublishAdminPackage: unpublishAdminPackageMock,
+    listAdminPackageDates: listAdminPackageDatesMock,
+    createAdminPackageDate: vi.fn(),
+    deleteAdminPackageDate: vi.fn(),
+    deactivateAdminPackageDate: vi.fn(),
   };
 });
 
@@ -94,6 +100,7 @@ afterEach(() => {
 beforeEach(() => {
   mockMatchMedia(true);
   listAdminPackagesMock.mockResolvedValue({ count: 0, results: [] });
+  listAdminPackageDatesMock.mockResolvedValue([]);
 });
 
 describe("Admin packages UI", () => {

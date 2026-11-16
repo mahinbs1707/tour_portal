@@ -10,8 +10,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import IsAdminRole
-from packages.models import TourPackage
-from packages.serializers import TourPackageSerializer
+from packages.models import AvailableDate, TourPackage
+from packages.serializers import AvailableDateSerializer, TourPackageSerializer
 from packages.services import PackageService
 
 
@@ -108,3 +108,105 @@ class AdminPackageUnpublishView(_AdminPackageActionMixin, APIView):
         except DjangoValidationError as exc:
             return _validation_response(exc)
         return Response(TourPackageSerializer(package).data)
+
+
+class AdminAvailableDateListCreateView(_AdminPackageActionMixin, APIView):
+    def get(self, request, package_id):
+        package = self.get_package(package_id)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        rows = AvailableDate.objects.filter(package=package)
+        return Response(AvailableDateSerializer(rows, many=True).data)
+
+    def post(self, request, package_id):
+        package = self.get_package(package_id)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = AvailableDateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            row = PackageService().create_available_date(
+                actor_id=request.user.id,
+                package=package,
+                tour_date=serializer.validated_data["tour_date"],
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(
+            AvailableDateSerializer(row).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminAvailableDateDetailView(_AdminPackageActionMixin, APIView):
+    http_method_names = ["get", "patch", "delete", "head", "options"]
+
+    def _get_row(self, package_id, date_id):
+        package = self.get_package(package_id)
+        if package is None:
+            return None, Response(
+                {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            row = AvailableDate.objects.get(pk=date_id, package=package)
+        except AvailableDate.DoesNotExist:
+            return None, Response(
+                {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        return row, None
+
+    def get(self, request, package_id, date_id):
+        row, error = self._get_row(package_id, date_id)
+        if error:
+            return error
+        return Response(AvailableDateSerializer(row).data)
+
+    def patch(self, request, package_id, date_id):
+        row, error = self._get_row(package_id, date_id)
+        if error:
+            return error
+        serializer = AvailableDateSerializer(row, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        try:
+            updated = PackageService().update_available_date(
+                actor_id=request.user.id,
+                row=row,
+                tour_date=serializer.validated_data.get("tour_date"),
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(AvailableDateSerializer(updated).data)
+
+    def delete(self, request, package_id, date_id):
+        row, error = self._get_row(package_id, date_id)
+        if error:
+            return error
+        try:
+            PackageService().delete_available_date(row=row)
+        except DjangoValidationError as exc:
+            # Referenced dates must not be hard-deleted.
+            if hasattr(exc, "message_dict"):
+                return Response(exc.message_dict, status=status.HTTP_409_CONFLICT)
+            return Response(
+                {"detail": list(getattr(exc, "messages", [str(exc)]))},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminAvailableDateDeactivateView(_AdminPackageActionMixin, APIView):
+    def post(self, request, package_id, date_id):
+        package = self.get_package(package_id)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            row = AvailableDate.objects.get(pk=date_id, package=package)
+        except AvailableDate.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            row = PackageService().deactivate_available_date(
+                actor_id=request.user.id, row=row
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(AvailableDateSerializer(row).data)

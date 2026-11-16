@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from packages.models import TourPackage
+from packages.models import AvailableDate, TourPackage
 
 WRITABLE_FIELDS = (
     "title",
@@ -95,3 +95,17 @@ class TourPackageSerializer(serializers.ModelSerializer):
             if isinstance(value, str):
                 attrs[field] = value.strip()
         return attrs
+
+
+class AvailableDateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AvailableDate
+        fields = (
+            "id",
+            "package",
+            "tour_date",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "package", "is_active", "created_at", "updated_at")

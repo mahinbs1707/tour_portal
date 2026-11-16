@@ -48,3 +48,41 @@ class TourPackage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title} ({self.status})"
+
+
+class AvailableDate(models.Model):
+    """Admin-defined calendar option for a package. No seat/capacity fields."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    package = models.ForeignKey(
+        TourPackage,
+        on_delete=models.CASCADE,
+        related_name="available_dates",
+    )
+    tour_date = models.DateField(db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["tour_date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["package", "tour_date"],
+                name="uniq_package_tour_date",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        state = "active" if self.is_active else "inactive"
+        return f"{self.package_id}:{self.tour_date} ({state})"
+
+    def has_booking_references(self) -> bool:
+        """True when a bookings reverse relation exists and has rows (Epic 5+)."""
+        related = getattr(self, "bookings", None)
+        if related is None:
+            return False
+        try:
+            return related.exists()
+        except Exception:
+            return False

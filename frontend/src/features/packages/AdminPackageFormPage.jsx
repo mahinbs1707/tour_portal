@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
+import { AdminAvailableDatesPanel } from "./AdminAvailableDatesPanel.jsx";
 import { ConfirmDialog } from "./ConfirmDialog.jsx";
 import {
   createAdminPackage,
@@ -470,6 +471,10 @@ export function AdminPackageFormPage() {
         onCancel={() => setConfirm(null)}
         onConfirm={runUnpublish}
       />
+
+      {!isNew && !loadFailed ? (
+        <AdminAvailableDatesPanel packageId={packageId} />
+      ) : null}
     </section>
   );
 }

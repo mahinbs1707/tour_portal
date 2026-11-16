@@ -43,6 +43,65 @@ export function unpublishAdminPackage(id) {
   });
 }
 
+/** GET /api/packages/admin/:packageId/dates/ */
+export function listAdminPackageDates(packageId) {
+  return apiRequest(`/api/packages/admin/${packageId}/dates/`, { method: "GET" });
+}
+
+/** POST /api/packages/admin/:packageId/dates/ */
+export function createAdminPackageDate(packageId, { tour_date }) {
+  return apiRequest(`/api/packages/admin/${packageId}/dates/`, {
+    method: "POST",
+    body: JSON.stringify({ tour_date }),
+  });
+}
+
+/** PATCH /api/packages/admin/:packageId/dates/:dateId/ */
+export function updateAdminPackageDate(packageId, dateId, { tour_date }) {
+  return apiRequest(`/api/packages/admin/${packageId}/dates/${dateId}/`, {
+    method: "PATCH",
+    body: JSON.stringify({ tour_date }),
+  });
+}
+
+/** DELETE /api/packages/admin/:packageId/dates/:dateId/ */
+export function deleteAdminPackageDate(packageId, dateId) {
+  return apiRequest(`/api/packages/admin/${packageId}/dates/${dateId}/`, {
+    method: "DELETE",
+  });
+}
+
+/** POST /api/packages/admin/:packageId/dates/:dateId/deactivate/ */
+export function deactivateAdminPackageDate(packageId, dateId) {
+  return apiRequest(
+    `/api/packages/admin/${packageId}/dates/${dateId}/deactivate/`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+}
+
+/**
+ * First bookable calendar date = today + 7 days in business TZ (Asia/Dhaka).
+ * Browser Date is local; Admin warning uses calendar-day comparison.
+ */
+export function minBookableDateIso(asOf = new Date()) {
+  const d = new Date(asOf.getFullYear(), asOf.getMonth(), asOf.getDate());
+  d.setDate(d.getDate() + 7);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function isWithinAdvanceWindow(isoDate, asOf = new Date()) {
+  if (!isoDate) {
+    return false;
+  }
+  return isoDate < minBookableDateIso(asOf);
+}
+
 /** Display helper: `{amount} {CODE}` (no hardcoded $). */
 export function formatPackagePrice(amount, currency, locale = "en") {
   const code = (currency || "").trim().toUpperCase() || "—";

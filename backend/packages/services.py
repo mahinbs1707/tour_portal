@@ -10,9 +10,19 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from audit.services import AuditService
-from packages.models import PackageStatus, TourPackage
+from packages.models import AvailableDate, PackageStatus, TourPackage
 
 TARGET_TYPE = "package"
+DATE_TARGET_TYPE = "available_date"
+
+
+def _date_snapshot(row: AvailableDate) -> dict[str, Any]:
+    return {
+        "id": str(row.id),
+        "package_id": str(row.package_id),
+        "tour_date": row.tour_date.isoformat(),
+        "is_active": row.is_active,
+    }
 
 
 def _snapshot(package: TourPackage) -> dict[str, Any]:
@@ -155,3 +165,84 @@ class PackageService:
                 value = value.strip().upper()
             out[key] = value
         return out
+
+    def create_available_date(
+        self,
+        *,
+        actor_id: UUID,
+        package: TourPackage,
+        tour_date,
+    ) -> AvailableDate:
+        with transaction.atomic():
+            row = AvailableDate(
+                package=package,
+                tour_date=tour_date,
+                is_active=True,
+            )
+            row.full_clean()
+            row.save()
+            self.audit.record(
+                actor_id=actor_id,
+                action="available_date.create",
+                target_type=DATE_TARGET_TYPE,
+                target_id=str(row.id),
+                before=None,
+                after=_date_snapshot(row),
+            )
+            return row
+
+    def update_available_date(
+        self,
+        *,
+        actor_id: UUID,
+        row: AvailableDate,
+        tour_date=None,
+    ) -> AvailableDate:
+        with transaction.atomic():
+            locked = AvailableDate.objects.select_for_update().get(pk=row.pk)
+            if tour_date is not None:
+                locked.tour_date = tour_date
+            locked.full_clean()
+            locked.save()
+            # Closed audit catalog has no available_date.update — create/deactivate only.
+            return locked
+
+    def delete_available_date(self, *, row: AvailableDate) -> None:
+        with transaction.atomic():
+            locked = AvailableDate.objects.select_for_update().get(pk=row.pk)
+            if locked.has_booking_references():
+                raise ValidationError(
+                    {
+                        "detail": (
+                            "Cannot hard-delete an available date referenced by "
+                            "bookings. Deactivate it instead."
+                        )
+                    }
+                )
+            locked.delete()
+
+    def deactivate_available_date(
+        self,
+        *,
+        actor_id: UUID,
+        row: AvailableDate,
+    ) -> AvailableDate:
+        with transaction.atomic():
+            locked = AvailableDate.objects.select_for_update().get(pk=row.pk)
+            if not locked.is_active:
+                raise ValidationError(
+                    {"is_active": "Available date is already inactive."}
+                )
+            before = _date_snapshot(locked)
+            locked.is_active = False
+            locked.full_clean()
+            locked.save(update_fields=["is_active", "updated_at"])
+            self.audit.record(
+                actor_id=actor_id,
+                action="available_date.deactivate",
+                target_type=DATE_TARGET_TYPE,
+                target_id=str(locked.id),
+                before=before,
+                after=_date_snapshot(locked),
+            )
+            return locked
