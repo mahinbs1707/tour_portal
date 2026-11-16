@@ -10,6 +10,11 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from audit.services import AuditService
+from packages.media import (
+    ADDITIONAL_IMAGES_MAX,
+    delete_media_file,
+    save_package_image,
+)
 from packages.models import AvailableDate, PackageStatus, TourPackage
 
 TARGET_TYPE = "package"
@@ -246,3 +251,153 @@ class PackageService:
                 after=_date_snapshot(locked),
             )
             return locked
+
+    def set_cover_image(
+        self,
+        *,
+        actor_id: UUID,
+        package: TourPackage,
+        uploaded,
+    ) -> TourPackage:
+        # Validate + write file before the DB transaction so rejects leave nothing.
+        new_url = save_package_image(
+            package_id=package.id,
+            uploaded=uploaded,
+            kind="cover",
+        )
+        old_url = ""
+        try:
+            with transaction.atomic():
+                locked = TourPackage.objects.select_for_update().get(pk=package.pk)
+                before = _snapshot(locked)
+                old_url = locked.cover_image or ""
+                locked.cover_image = new_url
+                locked.full_clean()
+                locked.save(update_fields=["cover_image", "updated_at"])
+                self.audit.record(
+                    actor_id=actor_id,
+                    action="package.update",
+                    target_type=TARGET_TYPE,
+                    target_id=str(locked.id),
+                    before=before,
+                    after=_snapshot(locked),
+                )
+                package = locked
+        except Exception:
+            delete_media_file(new_url)
+            raise
+        if old_url and old_url != new_url:
+            delete_media_file(old_url)
+        return package
+
+    def clear_cover_image(
+        self,
+        *,
+        actor_id: UUID,
+        package: TourPackage,
+    ) -> TourPackage:
+        with transaction.atomic():
+            locked = TourPackage.objects.select_for_update().get(pk=package.pk)
+            before = _snapshot(locked)
+            old_url = locked.cover_image or ""
+            locked.cover_image = ""
+            locked.full_clean()
+            locked.save(update_fields=["cover_image", "updated_at"])
+            self.audit.record(
+                actor_id=actor_id,
+                action="package.update",
+                target_type=TARGET_TYPE,
+                target_id=str(locked.id),
+                before=before,
+                after=_snapshot(locked),
+            )
+            package = locked
+        if old_url:
+            delete_media_file(old_url)
+        return package
+
+    def append_additional_image(
+        self,
+        *,
+        actor_id: UUID,
+        package: TourPackage,
+        uploaded,
+    ) -> TourPackage:
+        locked_pre = TourPackage.objects.get(pk=package.pk)
+        current = list(locked_pre.additional_images or [])
+        if len(current) >= ADDITIONAL_IMAGES_MAX:
+            raise ValidationError(
+                {
+                    "file": (
+                        f"At most {ADDITIONAL_IMAGES_MAX} additional images "
+                        "are allowed."
+                    )
+                }
+            )
+        new_url = save_package_image(
+            package_id=package.id,
+            uploaded=uploaded,
+            kind="additional",
+        )
+        try:
+            with transaction.atomic():
+                locked = TourPackage.objects.select_for_update().get(pk=package.pk)
+                images = list(locked.additional_images or [])
+                if len(images) >= ADDITIONAL_IMAGES_MAX:
+                    raise ValidationError(
+                        {
+                            "file": (
+                                f"At most {ADDITIONAL_IMAGES_MAX} additional "
+                                "images are allowed."
+                            )
+                        }
+                    )
+                before = _snapshot(locked)
+                images.append(new_url)
+                locked.additional_images = images
+                locked.full_clean()
+                locked.save(update_fields=["additional_images", "updated_at"])
+                self.audit.record(
+                    actor_id=actor_id,
+                    action="package.update",
+                    target_type=TARGET_TYPE,
+                    target_id=str(locked.id),
+                    before=before,
+                    after=_snapshot(locked),
+                )
+                return locked
+        except Exception:
+            delete_media_file(new_url)
+            raise
+
+    def remove_additional_image(
+        self,
+        *,
+        actor_id: UUID,
+        package: TourPackage,
+        index: int,
+    ) -> TourPackage:
+        with transaction.atomic():
+            locked = TourPackage.objects.select_for_update().get(pk=package.pk)
+            images = list(locked.additional_images or [])
+            if index < 0 or index >= len(images):
+                raise ValidationError(
+                    {"index": "Additional image index is out of range."}
+                )
+            before = _snapshot(locked)
+            removed_url = images.pop(index)
+            locked.additional_images = images
+            locked.full_clean()
+            locked.save(update_fields=["additional_images", "updated_at"])
+            self.audit.record(
+                actor_id=actor_id,
+                action="package.update",
+                target_type=TARGET_TYPE,
+                target_id=str(locked.id),
+                before=before,
+                after=_snapshot(locked),
+            )
+            package = locked
+        if removed_url:
+            delete_media_file(removed_url)
+        return package

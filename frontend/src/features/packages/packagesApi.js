@@ -82,6 +82,40 @@ export function deactivateAdminPackageDate(packageId, dateId) {
   );
 }
 
+/** POST /api/packages/admin/:id/media/cover/ — multipart cover upload. */
+export function uploadAdminPackageCover(id, file) {
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest(`/api/packages/admin/${id}/media/cover/`, {
+    method: "POST",
+    body,
+  });
+}
+
+/** DELETE /api/packages/admin/:id/media/cover/ */
+export function clearAdminPackageCover(id) {
+  return apiRequest(`/api/packages/admin/${id}/media/cover/`, {
+    method: "DELETE",
+  });
+}
+
+/** POST /api/packages/admin/:id/media/additional/ — multipart append. */
+export function uploadAdminPackageAdditional(id, file) {
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest(`/api/packages/admin/${id}/media/additional/`, {
+    method: "POST",
+    body,
+  });
+}
+
+/** DELETE /api/packages/admin/:id/media/additional/:index/ */
+export function removeAdminPackageAdditional(id, index) {
+  return apiRequest(`/api/packages/admin/${id}/media/additional/${index}/`, {
+    method: "DELETE",
+  });
+}
+
 /**
  * First bookable calendar date = today + 7 days in business TZ (Asia/Dhaka).
  * Browser Date is local; Admin warning uses calendar-day comparison.

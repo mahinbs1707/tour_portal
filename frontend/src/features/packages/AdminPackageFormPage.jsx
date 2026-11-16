@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { AdminAvailableDatesPanel } from "./AdminAvailableDatesPanel.jsx";
+import { AdminPackageMediaPanel } from "./AdminPackageMediaPanel.jsx";
 import { ConfirmDialog } from "./ConfirmDialog.jsx";
 import {
   createAdminPackage,
@@ -473,7 +474,10 @@ export function AdminPackageFormPage() {
       />
 
       {!isNew && !loadFailed ? (
-        <AdminAvailableDatesPanel packageId={packageId} />
+        <>
+          <AdminPackageMediaPanel packageId={packageId} />
+          <AdminAvailableDatesPanel packageId={packageId} />
+        </>
       ) : null}
     </section>
   );

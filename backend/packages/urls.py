@@ -6,6 +6,9 @@ from packages.views import (
     AdminAvailableDateDeactivateView,
     AdminAvailableDateDetailView,
     AdminAvailableDateListCreateView,
+    AdminPackageAdditionalMediaIndexView,
+    AdminPackageAdditionalMediaView,
+    AdminPackageCoverMediaView,
     AdminPackageDetailView,
     AdminPackageListCreateView,
     AdminPackagePublishView,
@@ -32,6 +35,21 @@ urlpatterns = [
         "admin/<uuid:pk>/unpublish/",
         AdminPackageUnpublishView.as_view(),
         name="admin-package-unpublish",
+    ),
+    path(
+        "admin/<uuid:pk>/media/cover/",
+        AdminPackageCoverMediaView.as_view(),
+        name="admin-package-media-cover",
+    ),
+    path(
+        "admin/<uuid:pk>/media/additional/",
+        AdminPackageAdditionalMediaView.as_view(),
+        name="admin-package-media-additional",
+    ),
+    path(
+        "admin/<uuid:pk>/media/additional/<int:index>/",
+        AdminPackageAdditionalMediaIndexView.as_view(),
+        name="admin-package-media-additional-index",
     ),
     path(
         "admin/<uuid:package_id>/dates/",

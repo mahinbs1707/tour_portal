@@ -88,6 +88,29 @@ export const messages = {
     confirmDeactivateDateTitle: "Deactivate this date?",
     confirmDeactivateDateBody:
       "The date stays on record but will not be offered for new bookings.",
+    mediaTitle: "Package images",
+    mediaSubtitle:
+      "Upload a cover image and up to 8 additional images (JPEG, PNG, or WebP). Size limits follow server configuration.",
+    mediaCoverLabel: "Cover image",
+    mediaCoverEmpty: "No cover image yet.",
+    mediaAdditionalLabel: "Additional images",
+    mediaAdditionalEmpty: "No additional images yet.",
+    mediaUploadCover: "Upload cover",
+    mediaClearCover: "Clear cover",
+    mediaUploadAdditional: "Add image",
+    mediaRemoveAdditional: "Remove",
+    mediaUploading: "Uploading...",
+    mediaWorking: "Working...",
+    mediaCoverAlt: "Package cover image",
+    mediaAdditionalAlt: "Additional package image {index}",
+    confirmClearCoverTitle: "Clear cover image?",
+    confirmClearCoverBody:
+      "The cover image is removed from this package. The stored file is deleted when possible.",
+    confirmRemoveAdditionalTitle: "Remove this additional image?",
+    confirmRemoveAdditionalBody:
+      "This image is removed from the package gallery. The stored file is deleted when possible.",
+    mediaHint:
+      "Allowed types: JPEG, PNG, WebP. Maximum size is configured on the server.",
     fields: {
       title: "Tour title",
       shortDescription: "Short description",
@@ -105,11 +128,15 @@ export const messages = {
       cancellationPolicy: "Cancellation policy (optional)",
       additionalInfo: "Additional information (optional)",
       tourDate: "Travel date",
+      coverFile: "Cover image file",
+      additionalFile: "Additional image file",
     },
     errors: {
       generic: "Something went wrong. Please try again.",
       durationDays: "Duration days must be at least 1.",
       durationNights: "Duration nights cannot be negative.",
+      mediaType:
+        "Choose a JPEG, PNG, or WebP image. Other file types are not accepted.",
     },
   },
   auth: {

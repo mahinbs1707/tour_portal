@@ -171,7 +171,12 @@ export async function apiRequest(path, options = {}) {
   // Strip internal flag before fetch.
   const { _csrfRetried: _ignored, ...fetchOptions } = options;
 
-  if (fetchOptions.body != null && !headers.has("Content-Type")) {
+  // Let the browser set multipart boundary for FormData; never force JSON.
+  if (
+    fetchOptions.body != null &&
+    !headers.has("Content-Type") &&
+    !(typeof FormData !== "undefined" && fetchOptions.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json");
   }
 

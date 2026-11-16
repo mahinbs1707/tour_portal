@@ -210,3 +210,95 @@ class AdminAvailableDateDeactivateView(_AdminPackageActionMixin, APIView):
         except DjangoValidationError as exc:
             return _validation_response(exc)
         return Response(AvailableDateSerializer(row).data)
+
+
+def _uploaded_file(request):
+    uploaded = request.FILES.get("file")
+    if uploaded is None and len(request.FILES) == 1:
+        uploaded = next(iter(request.FILES.values()))
+    return uploaded
+
+
+class AdminPackageCoverMediaView(_AdminPackageActionMixin, APIView):
+    """POST/DELETE …/admin/<pk>/media/cover/ — Admin cover upload/clear."""
+
+    http_method_names = ["post", "delete", "head", "options"]
+
+    def post(self, request, pk):
+        package = self.get_package(pk)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        uploaded = _uploaded_file(request)
+        if uploaded is None:
+            return Response(
+                {"file": ["No file was uploaded."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            package = PackageService().set_cover_image(
+                actor_id=request.user.id,
+                package=package,
+                uploaded=uploaded,
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(TourPackageSerializer(package).data)
+
+    def delete(self, request, pk):
+        package = self.get_package(pk)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            package = PackageService().clear_cover_image(
+                actor_id=request.user.id,
+                package=package,
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(TourPackageSerializer(package).data)
+
+
+class AdminPackageAdditionalMediaView(_AdminPackageActionMixin, APIView):
+    """POST …/admin/<pk>/media/additional/ — append additional image."""
+
+    http_method_names = ["post", "head", "options"]
+
+    def post(self, request, pk):
+        package = self.get_package(pk)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        uploaded = _uploaded_file(request)
+        if uploaded is None:
+            return Response(
+                {"file": ["No file was uploaded."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            package = PackageService().append_additional_image(
+                actor_id=request.user.id,
+                package=package,
+                uploaded=uploaded,
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(TourPackageSerializer(package).data)
+
+
+class AdminPackageAdditionalMediaIndexView(_AdminPackageActionMixin, APIView):
+    """DELETE …/admin/<pk>/media/additional/<index>/ — remove by index."""
+
+    http_method_names = ["delete", "head", "options"]
+
+    def delete(self, request, pk, index):
+        package = self.get_package(pk)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            package = PackageService().remove_additional_image(
+                actor_id=request.user.id,
+                package=package,
+                index=index,
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(TourPackageSerializer(package).data)

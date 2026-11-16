@@ -167,6 +167,33 @@ describe("apiClient login/logout/me", () => {
   });
 });
 
+describe("apiClient FormData", () => {
+  it("does not force JSON Content-Type for FormData bodies", async () => {
+    document.cookie = "csrftoken=form-csrf; path=/";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => ({ cover_image: "/media/packages/x/cover.jpg" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const body = new FormData();
+    body.append("file", new Blob([new Uint8Array([1, 2, 3])], { type: "image/jpeg" }), "c.jpg");
+
+    await apiRequest("/api/packages/admin/x/media/cover/", {
+      method: "POST",
+      body,
+    });
+
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.credentials).toBe("include");
+    expect(options.headers.get("X-CSRFToken")).toBe("form-csrf");
+    expect(options.headers.get("Content-Type")).toBeNull();
+    expect(options.body).toBe(body);
+  });
+});
+
 describe("apiClient 401 and CSRF 403", () => {
   it("notifies session-ended handler once on 401", async () => {
     document.cookie = "csrftoken=tok; path=/";

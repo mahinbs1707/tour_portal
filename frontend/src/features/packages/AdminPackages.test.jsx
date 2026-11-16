@@ -261,6 +261,38 @@ describe("Admin packages UI", () => {
     expect(formatPackagePrice("12500.00", "bdt")).not.toMatch(/\$/);
   });
 
+  it("shows media panel when editing an existing package", async () => {
+    getAdminPackageMock.mockResolvedValue({
+      id: "pkg-1",
+      title: "Cox Escape",
+      short_description: "Short",
+      full_description: "Full",
+      destinations: "Cox",
+      duration_days: 3,
+      duration_nights: 2,
+      starting_location: "Dhaka",
+      base_price: "12500.00",
+      currency: "BDT",
+      included_services: "Hotel",
+      excluded_services: "Flights",
+      itinerary: "Day 1",
+      difficulty: "",
+      cancellation_policy: "",
+      additional_info: "",
+      status: "DRAFT",
+      cover_image: "",
+      additional_images: [],
+    });
+
+    renderAdmin("/app/admin/packages/pkg-1");
+    expect(
+      await screen.findByRole("heading", { name: messages.packages.editTitle }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("admin-package-media"),
+    ).toBeInTheDocument();
+  });
+
   it("confirms unpublish and keeps package as draft", async () => {
     const user = userEvent.setup();
     const published = {

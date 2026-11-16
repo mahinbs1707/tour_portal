@@ -136,6 +136,15 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", str(BASE_DIR / "media")))
+# Illustrative default until product finalizes upload size policy (AD-24 / Story 2.3).
+_DEFAULT_MEDIA_UPLOAD_MAX_BYTES = 5242880
+try:
+    MEDIA_UPLOAD_MAX_BYTES = int(
+        os.environ.get("MEDIA_UPLOAD_MAX_BYTES", str(_DEFAULT_MEDIA_UPLOAD_MAX_BYTES))
+    )
+except (TypeError, ValueError):
+    MEDIA_UPLOAD_MAX_BYTES = _DEFAULT_MEDIA_UPLOAD_MAX_BYTES
+
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

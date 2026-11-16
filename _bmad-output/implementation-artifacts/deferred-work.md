@@ -79,3 +79,7 @@
 - source_spec: _bmad-output/implementation-artifacts/spec-2-1-admin-package-create-edit-draft-publish.md
   summary: Assert unpublish clears is_featured when featured Admin UX lands
   evidence: Service already sets is_featured=False on unpublish; dedicated test deferred to Story 2.4 featured flag work
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-package-media-upload-and-serving.md`
+  summary: Additional image remove-by-index can race across concurrent Admin tabs
+  evidence: Frozen intent uses index-based DELETE; select_for_update keeps each request consistent but concurrent removals can delete a different image than the one shown
