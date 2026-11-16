@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "notifications",
     "audit",
     "packages",
+    "recommendations",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -168,5 +169,7 @@ REST_FRAMEWORK = {
     # Pagination is opt-in per view (packages Admin list); do not change auth/other arrays.
 }
 
-# Optional local stub flag (no provider integration in Story 1.1)
+# AI recommendations provider (Story 4.1 / AD-23). Default mock — no real LLM.
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "mock")
+# Test-only force-fail hook: "bad_response" → 502, "unavailable" → 503.
+AI_PROVIDER_FORCE_FAIL = os.environ.get("AI_PROVIDER_FORCE_FAIL", "")

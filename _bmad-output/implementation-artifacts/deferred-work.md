@@ -105,3 +105,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-4-server-side-search-and-filters.md`
   summary: Optional FE numeric pre-validation for price/duration before submit
   evidence: UX improvement only; backend remains authoritative for filter validation
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-1-recommendation-service-and-api.md`
+  summary: Bound/sanitize provider `why` strings (length/charset/HTML) when a real LLM provider is added
+  evidence: Mock emits short deterministic text; unbounded `why` risk is for future non-mock providers
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-1-recommendation-service-and-api.md`
+  summary: Bound or paginate `list(published())` inventory load for recommendations under large catalogs
+  evidence: MVP catalog size is fine; full published load per request is a scalability concern for later
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-1-recommendation-service-and-api.md`
+  summary: Add a deadline/timeout around provider.recommend for real upstream providers
+  evidence: Current mock is local/sync; hangs are not a realistic MVP failure mode until a network LLM lands
