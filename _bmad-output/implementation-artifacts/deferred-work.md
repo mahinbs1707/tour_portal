@@ -73,3 +73,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-role-aware-navigation-and-route-guards.md`
   summary: Add Admin Sign out affordance inside Admin sidebar (not only via View site → public Sign out)
   evidence: Sidebar-first Admin UX; Sign out works from public chrome today; deepen Admin chrome later if ops need one-click logout
+
+## Deferred from: build review of spec-2-1-admin-package-create-edit-draft-publish.md (2026-11-16)
+
+- source_spec: _bmad-output/implementation-artifacts/spec-2-1-admin-package-create-edit-draft-publish.md
+  summary: Assert unpublish clears is_featured when featured Admin UX lands
+  evidence: Service already sets is_featured=False on unpublish; dedicated test deferred to Story 2.4 featured flag work

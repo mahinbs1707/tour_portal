@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-16-2026 05:00
+last_updated: 11-16-2026 10:25
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -39,15 +39,15 @@ development_status:
   epic-1: in-progress
   1-1-local-compose-runtime-baseline: done
   1-2-design-tokens-and-route-group-shells: done
-  1-3-user-model-roles-and-admin-seed: review
-  1-4-customer-registration: review
-  1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient: review
+  1-3-user-model-roles-and-admin-seed: done
+  1-4-customer-registration: done
+  1-5-sign-in-sign-out-session-bootstrap-and-shared-apiclient: done
   1-5a-login-rate-limit-and-lockout: backlog
-  1-6-role-aware-navigation-and-route-guards: review
+  1-6-role-aware-navigation-and-route-guards: done
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-admin-package-create-edit-draft-publish: backlog
+  epic-2: in-progress
+  2-1-admin-package-create-edit-draft-publish: review
   2-2-available-dates-management-deactivate-never-hard-delete-with: backlog
   2-3-package-media-upload-and-serving: backlog
   2-4-featured-flag-and-admin-packages-list-ux: backlog

@@ -8,6 +8,8 @@ import { SignInPage } from "./features/auth/SignInPage.jsx";
 import { SignOutPage } from "./features/auth/SignOutPage.jsx";
 import { SignUpPage } from "./features/auth/SignUpPage.jsx";
 import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
+import { AdminPackageFormPage } from "./features/packages/AdminPackageFormPage.jsx";
+import { AdminPackagesPage } from "./features/packages/AdminPackagesPage.jsx";
 import { LandingPage } from "./features/public/LandingPage.jsx";
 import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
 import { messages } from "./i18n/messages.js";
@@ -63,9 +65,11 @@ export function AppRoutes() {
         }
       >
         <Route index element={<AdminHomePage />} />
+        <Route path="packages" element={<AdminPackagesPage />} />
+        <Route path="packages/new" element={<AdminPackageFormPage />} />
         <Route
-          path="packages"
-          element={<PlaceholderPage title={messages.nav.packages} />}
+          path="packages/:packageId"
+          element={<AdminPackageFormPage />}
         />
         <Route
           path="bookings"

@@ -15,4 +15,5 @@ urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("api/health/", health, name="api-health"),
     path("api/auth/", include("accounts.urls")),
+    path("api/packages/", include("packages.urls")),
 ]

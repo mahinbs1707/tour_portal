@@ -1,17 +1,15 @@
-"""AuditService stub (AD-4 / AD-12).
-
-Exclusive writer of administrative audit rows once the closed catalog lands.
-Story 1.3: interface only — no persistence / no domain event emission.
-"""
+"""AuditService — exclusive writer of administrative audit rows (AD-4 / AD-22)."""
 
 from __future__ import annotations
 
 from typing import Any
 from uuid import UUID
 
+from audit.models import AuditLog
+
 
 class AuditService:
-    """Injectable stub. Callers may depend on this API; writes are not-yet."""
+    """Persists audit rows. Callers must invoke inside the same atomic block as the change."""
 
     def record(
         self,
@@ -22,6 +20,12 @@ class AuditService:
         target_id: str,
         before: dict[str, Any] | None = None,
         after: dict[str, Any] | None = None,
-    ) -> None:
-        """Record-not-yet: no audit row is created in Story 1.3."""
-        return None
+    ) -> AuditLog:
+        return AuditLog.objects.create(
+            actor_id=actor_id,
+            action=action,
+            target_type=target_type,
+            target_id=str(target_id),
+            before=before,
+            after=after,
+        )

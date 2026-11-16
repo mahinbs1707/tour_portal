@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "common",
     "notifications",
     "audit",
+    "packages",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -155,6 +156,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+    # Pagination is opt-in per view (packages Admin list); do not change auth/other arrays.
 }
 
 # Optional local stub flag (no provider integration in Story 1.1)
