@@ -16,6 +16,8 @@ const {
   updateAdminPackageMock,
   getAdminPackageMock,
   unpublishAdminPackageMock,
+  featureAdminPackageMock,
+  unfeatureAdminPackageMock,
   listAdminPackageDatesMock,
 } = vi.hoisted(() => ({
   ensureCsrfMock: vi.fn().mockResolvedValue(undefined),
@@ -26,6 +28,8 @@ const {
   updateAdminPackageMock: vi.fn(),
   getAdminPackageMock: vi.fn(),
   unpublishAdminPackageMock: vi.fn(),
+  featureAdminPackageMock: vi.fn(),
+  unfeatureAdminPackageMock: vi.fn(),
   listAdminPackageDatesMock: vi.fn(),
 }));
 
@@ -50,6 +54,8 @@ vi.mock("./packagesApi.js", async () => {
     updateAdminPackage: updateAdminPackageMock,
     getAdminPackage: getAdminPackageMock,
     unpublishAdminPackage: unpublishAdminPackageMock,
+    featureAdminPackage: featureAdminPackageMock,
+    unfeatureAdminPackage: unfeatureAdminPackageMock,
     listAdminPackageDates: listAdminPackageDatesMock,
     createAdminPackageDate: vi.fn(),
     deleteAdminPackageDate: vi.fn(),
@@ -125,16 +131,67 @@ describe("Admin packages UI", () => {
           base_price: "12500.00",
           currency: "BDT",
           status: "DRAFT",
+          is_featured: false,
         },
       ],
     });
     renderAdmin("/app/admin/packages");
     expect(await screen.findByText("Cox Escape")).toBeInTheDocument();
-    expect(screen.getByText(/Draft/)).toBeInTheDocument();
+    const card = screen.getByTestId("admin-package-card-pkg-1");
+    expect(within(card).getByText(messages.packages.statusDraft)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Cox Escape/ })).toHaveAttribute(
       "href",
       "/app/admin/packages/pkg-1",
     );
+    expect(screen.getByTestId("admin-packages-card-list")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("shows featured chip and applies list filters", async () => {
+    const user = userEvent.setup();
+    listAdminPackagesMock.mockResolvedValue({
+      count: 1,
+      results: [
+        {
+          id: "pkg-feat",
+          title: "Featured Escape",
+          destinations: "Sylhet",
+          base_price: "9000.00",
+          currency: "BDT",
+          status: "PUBLISHED",
+          is_featured: true,
+        },
+      ],
+    });
+    renderAdmin("/app/admin/packages");
+    expect(await screen.findByText("Featured Escape")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("admin-package-featured-chip-pkg-feat"),
+    ).toHaveTextContent(messages.packages.featuredChip);
+
+    await user.selectOptions(
+      screen.getByTestId("admin-packages-status-filter"),
+      "PUBLISHED",
+    );
+    await waitFor(() => {
+      expect(listAdminPackagesMock).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 1, status: "PUBLISHED" }),
+      );
+    });
+
+    await user.selectOptions(
+      screen.getByTestId("admin-packages-featured-filter"),
+      "true",
+    );
+    await waitFor(() => {
+      expect(listAdminPackagesMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1,
+          status: "PUBLISHED",
+          featured: "true",
+        }),
+      );
+    });
   });
 
   it("saves a valid draft then can publish from create form", async () => {
@@ -313,17 +370,22 @@ describe("Admin packages UI", () => {
       cancellation_policy: "",
       additional_info: "",
       status: "PUBLISHED",
+      is_featured: true,
     };
     getAdminPackageMock.mockResolvedValue(published);
     unpublishAdminPackageMock.mockResolvedValue({
       ...published,
       status: "DRAFT",
+      is_featured: false,
     });
 
     renderAdmin("/app/admin/packages/pkg-1");
     expect(
       await screen.findByRole("button", { name: messages.packages.unpublish }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("admin-package-featured-status"),
+    ).toHaveTextContent(messages.packages.featuredChip);
     await user.click(
       screen.getByRole("button", { name: messages.packages.unpublish }),
     );
@@ -342,5 +404,135 @@ describe("Admin packages UI", () => {
     expect(
       await screen.findByText(messages.packages.statusDraft),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("admin-package-featured-status"),
+    ).toHaveTextContent(messages.packages.notFeaturedChip);
+  });
+
+  it("features a published package from detail", async () => {
+    const user = userEvent.setup();
+    const published = {
+      id: "pkg-1",
+      title: "Cox Escape",
+      short_description: "Short",
+      full_description: "Full",
+      destinations: "Cox",
+      duration_days: 3,
+      duration_nights: 2,
+      starting_location: "Dhaka",
+      base_price: "12500.00",
+      currency: "BDT",
+      included_services: "Hotel",
+      excluded_services: "Flights",
+      itinerary: "Day 1",
+      difficulty: "",
+      cancellation_policy: "",
+      additional_info: "",
+      status: "PUBLISHED",
+      is_featured: false,
+    };
+    getAdminPackageMock.mockResolvedValue(published);
+    featureAdminPackageMock.mockResolvedValue({
+      ...published,
+      is_featured: true,
+    });
+
+    renderAdmin("/app/admin/packages/pkg-1");
+    const toggle = await screen.findByTestId("admin-package-feature-toggle");
+    expect(toggle).toHaveTextContent(messages.packages.feature);
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await user.click(toggle);
+    await waitFor(() => {
+      expect(featureAdminPackageMock).toHaveBeenCalledWith("pkg-1");
+    });
+    expect(
+      screen.getByTestId("admin-package-featured-status"),
+    ).toHaveTextContent(messages.packages.featuredChip);
+    expect(
+      screen.getByTestId("admin-package-feature-toggle"),
+    ).toHaveTextContent(messages.packages.unfeature);
+    expect(
+      screen.getByTestId("admin-package-feature-toggle"),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("unfeatures a published package from detail", async () => {
+    const user = userEvent.setup();
+    const published = {
+      id: "pkg-1",
+      title: "Cox Escape",
+      short_description: "Short",
+      full_description: "Full",
+      destinations: "Cox",
+      duration_days: 3,
+      duration_nights: 2,
+      starting_location: "Dhaka",
+      base_price: "12500.00",
+      currency: "BDT",
+      included_services: "Hotel",
+      excluded_services: "Flights",
+      itinerary: "Day 1",
+      difficulty: "",
+      cancellation_policy: "",
+      additional_info: "",
+      status: "PUBLISHED",
+      is_featured: true,
+    };
+    getAdminPackageMock.mockResolvedValue(published);
+    unfeatureAdminPackageMock.mockResolvedValue({
+      ...published,
+      is_featured: false,
+    });
+
+    renderAdmin("/app/admin/packages/pkg-1");
+    const toggle = await screen.findByTestId("admin-package-feature-toggle");
+    expect(toggle).toHaveTextContent(messages.packages.unfeature);
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await user.click(toggle);
+    await waitFor(() => {
+      expect(unfeatureAdminPackageMock).toHaveBeenCalledWith("pkg-1");
+    });
+    expect(
+      screen.getByTestId("admin-package-featured-status"),
+    ).toHaveTextContent(messages.packages.notFeaturedChip);
+    expect(
+      screen.getByTestId("admin-package-feature-toggle"),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("clears filters from filtered empty state", async () => {
+    const user = userEvent.setup();
+    listAdminPackagesMock.mockResolvedValue({ count: 0, results: [] });
+    renderAdmin("/app/admin/packages");
+    await screen.findByTestId("admin-packages-empty");
+
+    await user.selectOptions(
+      screen.getByTestId("admin-packages-status-filter"),
+      "PUBLISHED",
+    );
+    expect(
+      await screen.findByRole("heading", {
+        name: messages.packages.filterEmptyTitle,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("admin-packages-clear-filters"),
+    ).toBeInTheDocument();
+
+    listAdminPackagesMock.mockClear();
+    listAdminPackagesMock.mockResolvedValue({ count: 0, results: [] });
+    await user.click(screen.getByTestId("admin-packages-clear-filters"));
+    await waitFor(() => {
+      expect(listAdminPackagesMock).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 1 }),
+      );
+    });
+    expect(screen.getByTestId("admin-packages-status-filter")).toHaveValue("");
+    expect(screen.getByTestId("admin-packages-featured-filter")).toHaveValue(
+      "",
+    );
+    expect(
+      screen.queryByTestId("admin-packages-clear-filters"),
+    ).not.toBeInTheDocument();
   });
 });

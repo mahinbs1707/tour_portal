@@ -137,6 +137,52 @@ class PackageService:
             )
             return locked
 
+    def feature(self, *, actor_id: UUID, package: TourPackage) -> TourPackage:
+        with transaction.atomic():
+            locked = TourPackage.objects.select_for_update().get(pk=package.pk)
+            if locked.status != PackageStatus.PUBLISHED:
+                raise ValidationError(
+                    {"status": "Only published packages can be featured."}
+                )
+            if locked.is_featured:
+                return locked
+            before = _snapshot(locked)
+            locked.is_featured = True
+            locked.full_clean()
+            locked.save(update_fields=["is_featured", "updated_at"])
+            self.audit.record(
+                actor_id=actor_id,
+                action="package.update",
+                target_type=TARGET_TYPE,
+                target_id=str(locked.id),
+                before=before,
+                after=_snapshot(locked),
+            )
+            return locked
+
+    def unfeature(self, *, actor_id: UUID, package: TourPackage) -> TourPackage:
+        with transaction.atomic():
+            locked = TourPackage.objects.select_for_update().get(pk=package.pk)
+            if locked.status != PackageStatus.PUBLISHED:
+                raise ValidationError(
+                    {"status": "Only published packages can be unfeatured."}
+                )
+            if not locked.is_featured:
+                return locked
+            before = _snapshot(locked)
+            locked.is_featured = False
+            locked.full_clean()
+            locked.save(update_fields=["is_featured", "updated_at"])
+            self.audit.record(
+                actor_id=actor_id,
+                action="package.update",
+                target_type=TARGET_TYPE,
+                target_id=str(locked.id),
+                before=before,
+                after=_snapshot(locked),
+            )
+            return locked
+
     def _writable_fields(self, data: dict[str, Any]) -> dict[str, Any]:
         # Media fields intentionally omitted — Story 2.3 owns upload/validation.
         allowed = {

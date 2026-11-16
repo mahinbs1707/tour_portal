@@ -10,8 +10,10 @@ from packages.views import (
     AdminPackageAdditionalMediaView,
     AdminPackageCoverMediaView,
     AdminPackageDetailView,
+    AdminPackageFeatureView,
     AdminPackageListCreateView,
     AdminPackagePublishView,
+    AdminPackageUnfeatureView,
     AdminPackageUnpublishView,
 )
 
@@ -35,6 +37,16 @@ urlpatterns = [
         "admin/<uuid:pk>/unpublish/",
         AdminPackageUnpublishView.as_view(),
         name="admin-package-unpublish",
+    ),
+    path(
+        "admin/<uuid:pk>/feature/",
+        AdminPackageFeatureView.as_view(),
+        name="admin-package-feature",
+    ),
+    path(
+        "admin/<uuid:pk>/unfeature/",
+        AdminPackageUnfeatureView.as_view(),
+        name="admin-package-unfeature",
     ),
     path(
         "admin/<uuid:pk>/media/cover/",

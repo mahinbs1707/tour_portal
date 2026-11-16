@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import IsAdminRole
-from packages.models import AvailableDate, TourPackage
+from packages.models import AvailableDate, PackageStatus, TourPackage
 from packages.serializers import AvailableDateSerializer, TourPackageSerializer
 from packages.services import PackageService
 
@@ -33,6 +33,35 @@ class AdminPackageListCreateView(ListCreateAPIView):
     serializer_class = TourPackageSerializer
     queryset = TourPackage.objects.all()
     pagination_class = AdminPackagePagination
+
+    def list(self, request, *args, **kwargs):
+        status_param = request.query_params.get("status")
+        featured_param = request.query_params.get("featured")
+        if status_param is not None and status_param not in PackageStatus.values:
+            return Response(
+                {"status": ["Invalid status filter. Use DRAFT or PUBLISHED."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if featured_param is not None and featured_param.lower() not in (
+            "true",
+            "false",
+        ):
+            return Response(
+                {"featured": ["Invalid featured filter. Use true or false."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().list(request, *args, **kwargs)
+
+    def filter_queryset(self, queryset):
+        status_param = self.request.query_params.get("status")
+        featured_param = self.request.query_params.get("featured")
+        if status_param in PackageStatus.values:
+            queryset = queryset.filter(status=status_param)
+        if featured_param is not None and featured_param.lower() in ("true", "false"):
+            queryset = queryset.filter(
+                is_featured=featured_param.lower() == "true"
+            )
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -103,6 +132,34 @@ class AdminPackageUnpublishView(_AdminPackageActionMixin, APIView):
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         try:
             package = PackageService().unpublish(
+                actor_id=request.user.id, package=package
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(TourPackageSerializer(package).data)
+
+
+class AdminPackageFeatureView(_AdminPackageActionMixin, APIView):
+    def post(self, request, pk):
+        package = self.get_package(pk)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            package = PackageService().feature(
+                actor_id=request.user.id, package=package
+            )
+        except DjangoValidationError as exc:
+            return _validation_response(exc)
+        return Response(TourPackageSerializer(package).data)
+
+
+class AdminPackageUnfeatureView(_AdminPackageActionMixin, APIView):
+    def post(self, request, pk):
+        package = self.get_package(pk)
+        if package is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            package = PackageService().unfeature(
                 actor_id=request.user.id, package=package
             )
         except DjangoValidationError as exc:

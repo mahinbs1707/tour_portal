@@ -1,8 +1,28 @@
 import { apiRequest } from "../../services/apiClient.js";
 
-/** GET /api/packages/admin/ — paginated Admin list. */
-export function listAdminPackages(page = 1) {
-  const query = page > 1 ? `?page=${page}` : "";
+/**
+ * GET /api/packages/admin/ — paginated Admin list.
+ * Accepts `{ page, status, featured }` or a legacy page number.
+ */
+export function listAdminPackages(pageOrOpts = 1, filters = {}) {
+  const opts =
+    typeof pageOrOpts === "object" && pageOrOpts !== null
+      ? pageOrOpts
+      : { page: pageOrOpts, ...filters };
+  const params = new URLSearchParams();
+  const page = opts.page ?? 1;
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  if (opts.status) {
+    params.set("status", opts.status);
+  }
+  if (opts.featured === true || opts.featured === false) {
+    params.set("featured", opts.featured ? "true" : "false");
+  } else if (opts.featured === "true" || opts.featured === "false") {
+    params.set("featured", opts.featured);
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest(`/api/packages/admin/${query}`, { method: "GET" });
 }
 
@@ -38,6 +58,22 @@ export function publishAdminPackage(id) {
 /** POST /api/packages/admin/:id/unpublish/ */
 export function unpublishAdminPackage(id) {
   return apiRequest(`/api/packages/admin/${id}/unpublish/`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+/** POST /api/packages/admin/:id/feature/ — published packages only. */
+export function featureAdminPackage(id) {
+  return apiRequest(`/api/packages/admin/${id}/feature/`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+/** POST /api/packages/admin/:id/unfeature/ — published packages only. */
+export function unfeatureAdminPackage(id) {
+  return apiRequest(`/api/packages/admin/${id}/unfeature/`, {
     method: "POST",
     body: JSON.stringify({}),
   });

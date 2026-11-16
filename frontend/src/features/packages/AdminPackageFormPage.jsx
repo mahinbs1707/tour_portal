@@ -7,8 +7,10 @@ import { AdminPackageMediaPanel } from "./AdminPackageMediaPanel.jsx";
 import { ConfirmDialog } from "./ConfirmDialog.jsx";
 import {
   createAdminPackage,
+  featureAdminPackage,
   getAdminPackage,
   publishAdminPackage,
+  unfeatureAdminPackage,
   unpublishAdminPackage,
   updateAdminPackage,
 } from "./packagesApi.js";
@@ -115,6 +117,7 @@ export function AdminPackageFormPage() {
   const formId = useId();
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState("DRAFT");
+  const [isFeatured, setIsFeatured] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [statusError, setStatusError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
@@ -122,6 +125,12 @@ export function AdminPackageFormPage() {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const savingRef = useRef(false);
+
+  function applyPackageState(pkg) {
+    setForm(fromPackage(pkg));
+    setStatus(pkg.status || "DRAFT");
+    setIsFeatured(Boolean(pkg.is_featured));
+  }
 
   useEffect(() => {
     if (isNew) {
@@ -134,8 +143,7 @@ export function AdminPackageFormPage() {
       try {
         const pkg = await getAdminPackage(packageId);
         if (!cancelled) {
-          setForm(fromPackage(pkg));
-          setStatus(pkg.status || "DRAFT");
+          applyPackageState(pkg);
         }
       } catch (err) {
         if (!cancelled) {
@@ -259,8 +267,7 @@ export function AdminPackageFormPage() {
         navigate(`/app/admin/packages/${created.id}`, { replace: true });
       } else {
         const updated = await updateAdminPackage(packageId, payload);
-        setForm(fromPackage(updated));
-        setStatus(updated.status);
+        applyPackageState(updated);
       }
     } catch (err) {
       if (err.fieldErrors) {
@@ -287,11 +294,9 @@ export function AdminPackageFormPage() {
     setStatusError("");
     try {
       const updated = await updateAdminPackage(packageId, toPayload(form));
-      setForm(fromPackage(updated));
-      setStatus(updated.status);
+      applyPackageState(updated);
       const published = await publishAdminPackage(packageId);
-      setForm(fromPackage(published));
-      setStatus(published.status);
+      applyPackageState(published);
     } catch (err) {
       if (err.fieldErrors) {
         setFieldErrors(err.fieldErrors);
@@ -317,8 +322,31 @@ export function AdminPackageFormPage() {
     setStatusError("");
     try {
       const unpublished = await unpublishAdminPackage(packageId);
-      setForm(fromPackage(unpublished));
-      setStatus(unpublished.status);
+      applyPackageState(unpublished);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setStatusError(err.nonFieldErrors?.[0] || err.message);
+      } else {
+        setStatusError(messages.packages.errors.generic);
+      }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function runFeatureToggle() {
+    if (savingRef.current || isNew || loadFailed || status !== "PUBLISHED") {
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
+    setStatusError("");
+    try {
+      const updated = isFeatured
+        ? await unfeatureAdminPackage(packageId)
+        : await featureAdminPackage(packageId);
+      applyPackageState(updated);
     } catch (err) {
       if (err instanceof ApiError) {
         setStatusError(err.nonFieldErrors?.[0] || err.message);
@@ -354,10 +382,17 @@ export function AdminPackageFormPage() {
       <h1 className="text-display-sm m-0">
         {isNew ? messages.packages.createTitle : messages.packages.editTitle}
       </h1>
-      <p className="mt-2 text-body-sm text-[var(--color-muted-foreground)]">
-        {status === "PUBLISHED"
-          ? messages.packages.statusPublished
-          : messages.packages.statusDraft}
+      <p className="mt-2 flex flex-wrap items-center gap-2 text-body-sm text-[var(--color-muted-foreground)]">
+        <span>
+          {status === "PUBLISHED"
+            ? messages.packages.statusPublished
+            : messages.packages.statusDraft}
+        </span>
+        <span data-testid="admin-package-featured-status">
+          {isFeatured
+            ? messages.packages.featuredChip
+            : messages.packages.notFeaturedChip}
+        </span>
       </p>
 
       {statusError ? (
@@ -449,6 +484,20 @@ export function AdminPackageFormPage() {
               onClick={() => setConfirm("unpublish")}
             >
               {messages.packages.unpublish}
+            </button>
+          ) : null}
+          {!isNew && status === "PUBLISHED" ? (
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold"
+              onClick={runFeatureToggle}
+              aria-pressed={isFeatured}
+              data-testid="admin-package-feature-toggle"
+            >
+              {isFeatured
+                ? messages.packages.unfeature
+                : messages.packages.feature}
             </button>
           ) : null}
         </div>

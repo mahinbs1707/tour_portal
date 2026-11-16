@@ -83,3 +83,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-3-package-media-upload-and-serving.md`
   summary: Additional image remove-by-index can race across concurrent Admin tabs
   evidence: Frozen intent uses index-based DELETE; select_for_update keeps each request consistent but concurrent removals can delete a different image than the one shown
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-featured-flag-and-admin-packages-list-ux.md`
+  summary: Filter-active empty-state title/body copy is untested
+  evidence: Verification-gap review; Clear filters control and API filter shapes were patched; copy-only empty branch left without a dedicated Vitest case
