@@ -68,6 +68,8 @@ INSTALLED_APPS = [
     "audit",
     "packages",
     "recommendations",
+    "bookings",
+    "payments",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

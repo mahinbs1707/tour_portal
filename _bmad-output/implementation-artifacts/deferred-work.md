@@ -122,3 +122,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-4-2-ai-recommendations-ui.md`
   summary: Add client AbortController timeout for hung `POST /api/recommendations/`
   evidence: Loading can stick if the network never returns; revisit with provider SLO / real LLM
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-1-booking-create-api-with-7-day-rule-asia-dhaka.md`
+  summary: Clarify whether Payment.amount should be package base_price or base_price times travelers before checkout
+  evidence: Story 5.1 stores package.base_price on the initial UNPAID row; product pricing rule not declared in AC
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-1-booking-create-api-with-7-day-rule-asia-dhaka.md`
+  summary: Harden booking create with select_for_update on package/available date to close TOCTOU unpublish/deactivate races
+  evidence: Checks run before insert; concurrent Admin unpublish could theoretically race
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-1-booking-create-api-with-7-day-rule-asia-dhaka.md`
+  summary: Prefer latest payment attempt status in booking responses once Epic 7 multi-attempt payments exist
+  evidence: Response currently uses oldest payment by created_at; fine for single UNPAID row in 5.1

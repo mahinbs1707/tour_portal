@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-16-2026 19:10
+last_updated: 11-16-2026 20:35
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -60,13 +60,13 @@ development_status:
   3-4-server-side-search-and-filters: done
   epic-3-retrospective: optional
 
-  epic-4: in-progress
-  4-1-recommendation-service-and-api: review
-  4-2-ai-recommendations-ui: review
-  epic-4-retrospective: optional
+  epic-4: done
+  4-1-recommendation-service-and-api: done
+  4-2-ai-recommendations-ui: done
+  epic-4-retrospective: done
 
-  epic-5: backlog
-  5-1-booking-create-api-with-7-day-rule-asia-dhaka: backlog
+  epic-5: in-progress
+  5-1-booking-create-api-with-7-day-rule-asia-dhaka: review
   5-2-booking-form-review-and-auth-return: backlog
   5-3-booking-confirmation-history-detail-and-cancel-pending: backlog
   epic-5-retrospective: optional
@@ -170,3 +170,31 @@ action_items:
     owner: "delivery"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-2-retro-2026-11-16.md"
+  - id: "epic-4-retro-item-10-before-a-real-llm-provider-lands-bound-s"
+    epic: 4
+    action: "Before a real LLM provider lands, bound/sanitize recommendation why (API
+      + UI) and add provider/client timeouts"
+    owner: "developer"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-11-16.md"
+  - id: "epic-4-retro-item-11-when-catalog-size-grows-bound-or-project"
+    epic: 4
+    action: "When catalog size grows, bound or project list(published()) for recommendations
+      scoring"
+    owner: "developer"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-11-16.md"
+  - id: "epic-4-retro-item-12-prefer-marking-story-keys-done-at-step-0"
+    epic: 4
+    action: "Prefer marking story keys done at step-05 human acceptance (not only
+      at next-epic close)"
+    owner: "delivery"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-11-16.md"
+  - id: "epic-4-retro-item-13-optional-smoke-ai-once-against-compose-w"
+    epic: 4
+    action: "Optional: smoke /ai once against Compose with real CSRF session before
+      Epic 5 booking UX relies on the same apiClient path"
+    owner: "quality"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-11-16.md"
