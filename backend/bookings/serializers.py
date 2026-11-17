@@ -70,3 +70,17 @@ class BookingResponseSerializer(serializers.ModelSerializer):
             return obj.payment_window.status
         except ObjectDoesNotExist:
             return None
+
+
+class BookingDetailSerializer(BookingResponseSerializer):
+    """Customer history/detail shape (Story 5.3): create fields + package title.
+
+    Booking / payment / window statuses stay separate keys. The create
+    response (`BookingResponseSerializer`) is unchanged.
+    """
+
+    package_title = serializers.CharField(source="package.title", read_only=True)
+
+    class Meta(BookingResponseSerializer.Meta):
+        fields = [*BookingResponseSerializer.Meta.fields, "package_title"]
+        read_only_fields = fields

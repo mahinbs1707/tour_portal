@@ -142,3 +142,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-2-booking-form-review-and-auth-return.md`
   summary: Extract formatTourDate / mapUnavailableReason into a shared packages helper module
   evidence: BookingFormPage imports from PackageDetailPage; coupling is acceptable short-term
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-booking-confirmation-history-detail-and-cancel-pending.md`
+  summary: Treat definitive create ApiErrors (401/403/429) as hard failures instead of outcome-unknown
+  evidence: Branching comes from 5.2 elicitation recovery; 5.3 history/cancel did not introduce it
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-booking-confirmation-history-detail-and-cancel-pending.md`
+  summary: Add POST /api/bookings/ idempotency key to prevent duplicate creates after client timeout
+  evidence: Outcome-unknown copy reduces harm but does not prevent double submit; API hardening follow-up
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-booking-confirmation-history-detail-and-cancel-pending.md`
+  summary: Paginate or limit customer booking history list when volumes grow
+  evidence: MVP returns full own list ordered -created_at/-id; fine for early traffic

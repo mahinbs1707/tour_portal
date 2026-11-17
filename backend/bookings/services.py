@@ -19,6 +19,11 @@ REFERENCE_HEX_LEN = 12
 MAX_REFERENCE_RETRIES = 5
 BOOKING_ENTITY_TYPE = "booking"
 BOOKING_SUBMITTED_EVENT = "booking.submitted"
+BOOKING_CANCELLED_EVENT = "booking.cancelled"
+
+
+class BookingNotCancellable(Exception):
+    """Raised when a Customer tries to cancel a booking that is not PENDING."""
 
 
 def reference_from_uuid(value: uuid.UUID) -> str:
@@ -87,6 +92,40 @@ class BookingService:
             if notification is None:
                 raise RuntimeError(
                     "booking.submitted notification was not created."
+                )
+            return booking
+
+    def cancel(self, *, customer, booking_id) -> Booking:
+        """Cancel an owned PENDING booking and emit ``booking.cancelled``.
+
+        Ownership is enforced by the lookup (``Booking.DoesNotExist`` for a
+        missing or foreign booking). Status flip and notification share one
+        atomic block. Never touches ``PaymentWindow`` (AD-16).
+        """
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(
+                pk=booking_id, customer=customer
+            )
+            if booking.status != BookingStatus.PENDING:
+                raise BookingNotCancellable(
+                    "Only pending bookings can be cancelled."
+                )
+            booking.status = BookingStatus.CANCELLED
+            booking.save(update_fields=["status", "updated_at"])
+            notification = self.notifications.create(
+                recipient_id=customer.id,
+                event_key=BOOKING_CANCELLED_EVENT,
+                entity_type=BOOKING_ENTITY_TYPE,
+                entity_id=booking.id,
+                payload={
+                    "reference": booking.reference,
+                    "booking_id": str(booking.id),
+                    "status": booking.status,
+                },
+            )
+            if notification is None:
+                raise RuntimeError(
+                    "booking.cancelled notification was not created."
                 )
             return booking
 

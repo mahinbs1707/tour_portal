@@ -18,3 +18,23 @@ export function createBooking(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+/** GET /api/bookings/ — own booking history, newest first (Story 5.3). */
+export function listMyBookings() {
+  return apiRequest("/api/bookings/", { method: "GET" });
+}
+
+/** GET /api/bookings/<uuid>/ — own booking detail (404 for foreign ids). */
+export function getBooking(bookingId) {
+  return apiRequest(`/api/bookings/${encodeURIComponent(bookingId)}/`, {
+    method: "GET",
+  });
+}
+
+/** POST /api/bookings/<uuid>/cancel/ — cancel own PENDING booking. */
+export function cancelBooking(bookingId) {
+  return apiRequest(
+    `/api/bookings/${encodeURIComponent(bookingId)}/cancel/`,
+    { method: "POST" },
+  );
+}

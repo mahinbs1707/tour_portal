@@ -80,15 +80,22 @@ context:
 
 - Booking form + review + thin confirmation; Guest Book Now → form; sessionStorage drafts; SignUp/SignIn `?next=`.
 - Review patches: force PENDING confirm; draft clear/validate; FE max lengths; generic ApiError; `/app/bookings` index; auth next tests; bookingsApi.test.
+- Walkthrough elicitation (error handling): load-error Retry; preserve draft on transient load (clear only on 404); orphan BE field keys → status banner; ambiguous POST → outcome-unknown copy (not false failure/success); double-click guard kept.
+- **Follow-up risk (not in 5.2):** POST `/api/bookings/` idempotency key — client timeout does not prove the server failed to create; outcome-unknown copy reduces duplicate harm but does not prevent it. Track for a future backend/API hardening story.
 
 ## Spec Change Log
 
 - 2026-11-17 — Implemented Story 5.2; review patches applied; tasks complete.
+- 2026-11-17 — Applied walkthrough elicitation P1–P4 (error-handling recovery); recorded POST idempotency as follow-up risk.
 
 ## Review Triage Log
 
 | Finding | Verdict | Route | Evidence |
 |---------|---------|-------|----------|
+| Transient load wipes draft / no Retry | high | patch | Retry; clear draft only on 404 |
+| Orphan BE fieldErrors silent | high | patch | status banner when no known form key |
+| Ambiguous POST timeout false failure | high | patch | outcomeUnknown copy; draft kept |
+| POST create not idempotent | medium | defer | follow-up API hardening story |
 | Orphan bookingStub messages | low | patch | remove unused stub copy |
 | Confirmation trusts status query | medium | patch | force display PENDING (thin 5.2 page) |
 | viewMyBookings → Placeholder | low | defer | intentional until 5.3 history |

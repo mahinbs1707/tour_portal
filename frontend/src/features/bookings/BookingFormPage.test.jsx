@@ -156,6 +156,7 @@ beforeEach(() => {
   mockMatchMedia(true);
   getPublishedPackageMock.mockResolvedValue(BOOKABLE_PKG);
   createBookingMock.mockResolvedValue({
+    id: "11111111-2222-3333-4444-555555555555",
     reference: "ABCDEF123456",
     status: "PENDING",
   });
@@ -275,7 +276,7 @@ describe("BookingFormPage", () => {
       });
     });
     expect(navigateMock).toHaveBeenCalledWith(
-      "/app/bookings/confirmation?reference=ABCDEF123456",
+      "/app/bookings/confirmation?booking=11111111-2222-3333-4444-555555555555&reference=ABCDEF123456",
       { replace: true },
     );
     expect(loadBookingDraft(PKG_ID)).toBeNull();
@@ -350,7 +351,7 @@ describe("BookingFormPage", () => {
     expect(loadBookingDraft(PKG_ID)).toBeNull();
   });
 
-  it("shows Explore recovery link on not-found", async () => {
+  it("shows Explore recovery link on not-found and clears draft", async () => {
     getPublishedPackageMock.mockRejectedValue(
       new ApiError({
         status: 404,
@@ -365,10 +366,21 @@ describe("BookingFormPage", () => {
       await screen.findByTestId("booking-form-not-found-explore"),
     ).toHaveAttribute("href", "/explore");
     expect(loadBookingDraft(PKG_ID)).toBeNull();
+    expect(
+      screen.queryByTestId("booking-form-load-error-retry"),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows Explore recovery link on load error", async () => {
-    getPublishedPackageMock.mockRejectedValue(
+  it("preserves draft on transient load error and Retry restores the form", async () => {
+    const user = userEvent.setup();
+    saveBookingDraft(PKG_ID, {
+      available_date_id: FAR_DATE_ID,
+      travelers: "3",
+      contact_name: "Retry Name",
+      contact_email: "retry@example.com",
+      contact_phone: "+8801888888888",
+    });
+    getPublishedPackageMock.mockRejectedValueOnce(
       new ApiError({
         status: 500,
         fieldErrors: {},
@@ -376,9 +388,94 @@ describe("BookingFormPage", () => {
         raw: null,
       }),
     );
+    getPublishedPackageMock.mockResolvedValueOnce(BOOKABLE_PKG);
+
     renderForm();
     expect(
       await screen.findByTestId("booking-form-load-error-explore"),
     ).toHaveAttribute("href", "/explore");
+    expect(
+      screen.getByTestId("booking-form-load-error-retry"),
+    ).toBeInTheDocument();
+    expect(loadBookingDraft(PKG_ID)?.contact_name).toBe("Retry Name");
+
+    await user.click(screen.getByTestId("booking-form-load-error-retry"));
+    expect(await screen.findByTestId("booking-form-name")).toHaveValue(
+      "Retry Name",
+    );
+    expect(screen.getByTestId("booking-form-phone")).toHaveValue(
+      "+8801888888888",
+    );
+    expect(screen.getByTestId("booking-form-date")).toHaveValue(FAR_DATE_ID);
+  });
+
+  it("shows orphan API field errors as a visible status banner", async () => {
+    const user = userEvent.setup();
+    createBookingMock.mockRejectedValue(
+      new ApiError({
+        status: 400,
+        fieldErrors: {
+          package_id: ["Unknown package."],
+        },
+        nonFieldErrors: [],
+        raw: { package_id: ["Unknown package."] },
+      }),
+    );
+    renderForm();
+    await screen.findByTestId("booking-form");
+    await fillRequiredFields(user);
+    await user.click(screen.getByTestId("booking-form-continue"));
+    expect(await screen.findByTestId("booking-review-page")).toBeInTheDocument();
+    await user.click(screen.getByTestId("booking-confirm-submit"));
+
+    expect(
+      await screen.findByTestId("booking-review-status-error"),
+    ).toHaveTextContent("Unknown package.");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("shows outcome-unknown copy on network timeout (not false failure)", async () => {
+    const user = userEvent.setup();
+    createBookingMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    renderForm();
+    await screen.findByTestId("booking-form");
+    await fillRequiredFields(user);
+    await user.click(screen.getByTestId("booking-form-continue"));
+    expect(await screen.findByTestId("booking-review-page")).toBeInTheDocument();
+    await user.click(screen.getByTestId("booking-confirm-submit"));
+
+    expect(
+      await screen.findByTestId("booking-review-status-error"),
+    ).toHaveTextContent(messages.booking.errors.outcomeUnknown);
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(loadBookingDraft(PKG_ID)).not.toBeNull();
+  });
+
+  it("keeps double-click protection — createBooking called once while in flight", async () => {
+    const user = userEvent.setup();
+    let resolveCreate;
+    createBookingMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    renderForm();
+    await screen.findByTestId("booking-form");
+    await fillRequiredFields(user);
+    await user.click(screen.getByTestId("booking-form-continue"));
+    expect(await screen.findByTestId("booking-review-page")).toBeInTheDocument();
+
+    const confirm = screen.getByTestId("booking-confirm-submit");
+    await user.click(confirm);
+    await user.click(confirm);
+    await user.click(confirm);
+
+    expect(createBookingMock).toHaveBeenCalledTimes(1);
+
+    resolveCreate({ reference: "ABCDEF123456", status: "PENDING" });
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalled();
+    });
   });
 });

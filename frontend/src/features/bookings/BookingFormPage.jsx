@@ -24,6 +24,16 @@ const NAME_MAX = 255;
 const PHONE_MAX = 64;
 const REQUIREMENTS_MAX = 2000;
 
+/** Form-bound keys that can show inline field errors from FE or BE. */
+export const BOOKING_FORM_ERROR_KEYS = new Set([
+  "available_date_id",
+  "travelers",
+  "contact_name",
+  "contact_email",
+  "contact_phone",
+  "additional_requirements",
+]);
+
 function calendarDayIso(asOf = new Date()) {
   const yyyy = asOf.getFullYear();
   const mm = String(asOf.getMonth() + 1).padStart(2, "0");
@@ -136,6 +146,7 @@ export function BookingFormPage() {
   const [loading, setLoading] = useState(Boolean(packageId));
   const [loadError, setLoadError] = useState("");
   const [notFound, setNotFound] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [form, setForm] = useState(emptyForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [statusError, setStatusError] = useState("");
@@ -257,11 +268,13 @@ export function BookingFormPage() {
           return;
         }
         setPkg(null);
-        clearBookingDraft(packageId);
         if (err instanceof ApiError && err.status === 404) {
+          // Confirmed unavailable — drop draft so restore cannot revive it.
+          clearBookingDraft(packageId);
           setNotFound(true);
           setLoadError("");
         } else {
+          // Transient 5xx/network — keep draft so Retry can restore it.
           setNotFound(false);
           setLoadError(
             err instanceof ApiError
@@ -279,7 +292,7 @@ export function BookingFormPage() {
     return () => {
       loadGenerationRef.current += 1;
     };
-  }, [packageId, user?.email, user?.full_name]);
+  }, [packageId, user?.email, user?.full_name, loadAttempt]);
 
   useEffect(() => {
     if (!packageId || !draftHydratedRef.current || !isBookablePackage) {
@@ -344,6 +357,10 @@ export function BookingFormPage() {
       clearBookingDraft(packageId);
       const reference = created?.reference || "";
       const params = new URLSearchParams();
+      // Detail routes key on the booking UUID; reference is display-only (5.3).
+      if (created?.id) {
+        params.set("booking", String(created.id));
+      }
       if (reference) {
         params.set("reference", reference);
       }
@@ -352,25 +369,44 @@ export function BookingFormPage() {
       });
     } catch (err) {
       if (err instanceof ApiError) {
-        const next = {};
+        const known = {};
+        const orphanMessages = [];
         for (const [key, list] of Object.entries(err.fieldErrors || {})) {
           const msg = Array.isArray(list) ? list[0] : String(list);
-          if (msg) {
-            next[key] = msg;
+          if (!msg) {
+            continue;
+          }
+          if (BOOKING_FORM_ERROR_KEYS.has(key)) {
+            known[key] = msg;
+          } else {
+            orphanMessages.push(msg);
           }
         }
-        const hasUsableField = Object.keys(next).length > 0;
-        if (hasUsableField) {
-          setFieldErrors(next);
+        const hasKnownField = Object.keys(known).length > 0;
+        if (hasKnownField) {
+          setFieldErrors(known);
           setStep("form");
         }
         const nonField = (err.nonFieldErrors || []).find(Boolean);
-        setStatusError(
-          nonField ||
-            (hasUsableField ? "" : messages.booking.errors.generic),
-        );
+        const isValidationStatus = err.status === 400 || err.status === 422;
+        if (hasKnownField) {
+          setStatusError(nonField || "");
+        } else if (orphanMessages.length > 0) {
+          // Never silently return — orphan keys become a visible status banner.
+          setStatusError(
+            nonField || orphanMessages.join(" "),
+          );
+        } else if (nonField && isValidationStatus) {
+          setStatusError(nonField);
+        } else if (!isValidationStatus) {
+          // Ambiguous: request may have reached the server.
+          setStatusError(messages.booking.errors.outcomeUnknown);
+        } else {
+          setStatusError(messages.booking.errors.generic);
+        }
       } else {
-        setStatusError(messages.booking.errors.generic);
+        // Network / timeout — outcome unknown (not a confirmed failure).
+        setStatusError(messages.booking.errors.outcomeUnknown);
       }
     } finally {
       submittingRef.current = false;
@@ -453,13 +489,23 @@ export function BookingFormPage() {
         >
           {loadError}
         </p>
-        <Link
-          to="/explore"
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold no-underline"
-          data-testid="booking-form-load-error-explore"
-        >
-          {messages.explore.backToExplore}
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setLoadAttempt((n) => n + 1)}
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+            data-testid="booking-form-load-error-retry"
+          >
+            {messages.booking.retry}
+          </button>
+          <Link
+            to="/explore"
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold no-underline"
+            data-testid="booking-form-load-error-explore"
+          >
+            {messages.explore.backToExplore}
+          </Link>
+        </div>
       </section>
     );
   }

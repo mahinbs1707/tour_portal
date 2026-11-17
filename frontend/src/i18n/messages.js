@@ -170,6 +170,76 @@ export const messages = {
     referenceLabel: "Booking reference",
     statusLabel: "Booking status",
     viewMyBookings: "My bookings",
+    viewBookingDetail: "View booking details",
+    confirmationWindowNote:
+      "The payment window is not open yet. You will be able to pay only after Admin approval.",
+    confirmationReferenceOnly:
+      "We could not load the live status for this booking. Open My bookings to see its current status.",
+    confirmationLoading: "Loading your booking…",
+    retry: "Retry",
+    historyTitle: "My bookings",
+    historySubtitle:
+      "Track your booking requests. Booking, payment, and window statuses are shown separately.",
+    historyLoading: "Loading your bookings…",
+    historyEmptyTitle: "No bookings yet",
+    historyEmptyBody:
+      "When you submit a booking request it will appear here. Browse Explore to find a tour.",
+    historyEmptyCta: "Explore tours",
+    historyListLabel: "Your bookings",
+    detailTitle: "Booking details",
+    detailLoading: "Loading booking details…",
+    detailNotFoundTitle: "Booking not found",
+    detailNotFoundBody:
+      "This booking does not exist or is not available to your account.",
+    backToHistory: "Back to My bookings",
+    packageHeading: "Package",
+    travelDateLabel: "Travel date",
+    travelersSummaryLabel: "Travelers",
+    submittedAtLabel: "Submitted",
+    contactTitle: "Contact details",
+    contactNameLabel: "Name",
+    contactEmailLabel: "Email",
+    contactPhoneLabel: "Phone",
+    requirementsHeading: "Additional requirements",
+    statusesTitle: "Statuses",
+    bookingStatusChip: "Booking status",
+    paymentStatusChip: "Payment status",
+    windowStatusChip: "Payment window",
+    statusNotAvailable: "Not available",
+    cancelBooking: "Cancel booking",
+    cancelling: "Cancelling…",
+    cancelDialogTitle: "Cancel this booking request?",
+    cancelDialogBody:
+      "Booking {reference} will be cancelled. You will not be able to cancel it again or reopen it.",
+    cancelDialogConfirm: "Yes, cancel booking",
+    cancelDialogKeep: "Keep booking",
+    cancelSuccess: "Booking {reference} was cancelled.",
+    bookingStatus: {
+      PENDING: "Pending",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      CANCELLED: "Cancelled",
+    },
+    paymentStatus: {
+      UNPAID: "Unpaid",
+      PENDING: "Payment pending",
+      SUCCESS: "Paid",
+      FAILED: "Payment failed",
+      CANCELLED: "Payment cancelled",
+    },
+    windowStatus: {
+      NOT_OPEN: "Not open",
+      OPEN: "Open",
+      EXPIRED: "Expired",
+    },
+    historyErrors: {
+      listGeneric: "We could not load your bookings. Please try again.",
+      detailGeneric: "We could not load this booking. Please try again.",
+      cancelGeneric: "We could not cancel this booking. Please try again.",
+      cancelNotPending: "Only pending bookings can be cancelled.",
+      cancelOutcomeUnknown:
+        "We could not confirm whether your booking was cancelled. We have refreshed it below — check its status before trying again.",
+    },
     errors: {
       dateRequired: "Select a preferred travel date.",
       dateUnavailable:
@@ -185,6 +255,8 @@ export const messages = {
       requirementsTooLong:
         "Additional requirements must be {max} characters or fewer.",
       generic: "Something went wrong. Please try again.",
+      outcomeUnknown:
+        "We could not confirm whether your booking request was created. Check My bookings before submitting again — a request may already exist, and submitting again can create another.",
     },
   },
   customerHome: {

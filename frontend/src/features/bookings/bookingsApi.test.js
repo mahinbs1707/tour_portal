@@ -8,7 +8,12 @@ vi.mock("../../services/apiClient.js", () => ({
   apiRequest: apiRequestMock,
 }));
 
-import { createBooking } from "./bookingsApi.js";
+import {
+  cancelBooking,
+  createBooking,
+  getBooking,
+  listMyBookings,
+} from "./bookingsApi.js";
 
 describe("bookingsApi", () => {
   beforeEach(() => {
@@ -36,5 +41,28 @@ describe("bookingsApi", () => {
       method: "POST",
       body: JSON.stringify(payload),
     });
+  });
+
+  it("GETs the own-booking list", async () => {
+    await listMyBookings();
+    expect(apiRequestMock).toHaveBeenCalledWith("/api/bookings/", {
+      method: "GET",
+    });
+  });
+
+  it("GETs detail by booking UUID", async () => {
+    await getBooking("11111111-2222-3333-4444-555555555555");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/11111111-2222-3333-4444-555555555555/",
+      { method: "GET" },
+    );
+  });
+
+  it("POSTs cancel by booking UUID", async () => {
+    await cancelBooking("11111111-2222-3333-4444-555555555555");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/11111111-2222-3333-4444-555555555555/cancel/",
+      { method: "POST" },
+    );
   });
 });

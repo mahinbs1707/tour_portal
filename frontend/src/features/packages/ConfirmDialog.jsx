@@ -11,6 +11,7 @@ export function ConfirmDialog({
   cancelLabel,
   onConfirm,
   onCancel,
+  role = "dialog",
 }) {
   const titleId = useId();
   const bodyId = useId();
@@ -97,7 +98,7 @@ export function ConfirmDialog({
     >
       <div
         ref={dialogRef}
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}

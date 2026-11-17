@@ -9,7 +9,9 @@ import { SignOutPage } from "./features/auth/SignOutPage.jsx";
 import { SignUpPage } from "./features/auth/SignUpPage.jsx";
 import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
 import { BookingConfirmationPage } from "./features/bookings/BookingConfirmationPage.jsx";
+import { BookingDetailPage } from "./features/bookings/BookingDetailPage.jsx";
 import { BookingFormPage } from "./features/bookings/BookingFormPage.jsx";
+import { MyBookingsPage } from "./features/bookings/MyBookingsPage.jsx";
 import { AdminPackageFormPage } from "./features/packages/AdminPackageFormPage.jsx";
 import { AdminPackagesPage } from "./features/packages/AdminPackagesPage.jsx";
 import { ExplorePage } from "./features/packages/ExplorePage.jsx";
@@ -61,10 +63,8 @@ export function AppRoutes() {
         }
       >
         <Route index element={<CustomerHomePage />} />
-        <Route
-          path="bookings"
-          element={<PlaceholderPage title={messages.nav.myBookings} />}
-        />
+        <Route path="bookings" element={<MyBookingsPage />} />
+        <Route path="bookings/:id" element={<BookingDetailPage />} />
         <Route
           path="custom-tours"
           element={<PlaceholderPage title={messages.nav.customTours} />}
