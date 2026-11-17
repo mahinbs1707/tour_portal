@@ -7,11 +7,17 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
+from audit.services import AuditService
 from notifications.services import NotificationService
 from packages.models import AvailableDate, PackageStatus, TourPackage
 from packages.validators import assert_bookable_date
-from payments.services import PaymentService
+from payments.services import (
+    PaymentService,
+    PaymentWindowMissing,
+    PaymentWindowNotOpenable,
+)
 
 from bookings.models import Booking, BookingStatus
 
@@ -20,10 +26,16 @@ MAX_REFERENCE_RETRIES = 5
 BOOKING_ENTITY_TYPE = "booking"
 BOOKING_SUBMITTED_EVENT = "booking.submitted"
 BOOKING_CANCELLED_EVENT = "booking.cancelled"
+BOOKING_APPROVED_EVENT = "booking.approved"
+BOOKING_APPROVE_AUDIT_ACTION = "booking.approve"
 
 
 class BookingNotCancellable(Exception):
     """Raised when a Customer tries to cancel a booking that is not PENDING."""
+
+
+class BookingNotApprovable(Exception):
+    """Raised when an Admin tries to approve a booking that cannot be approved."""
 
 
 def reference_from_uuid(value: uuid.UUID) -> str:
@@ -39,9 +51,11 @@ class BookingService:
         *,
         payments: PaymentService | None = None,
         notifications: NotificationService | None = None,
+        audit: AuditService | None = None,
     ):
         self.payments = payments or PaymentService()
         self.notifications = notifications or NotificationService()
+        self.audit = audit or AuditService()
 
     def create(
         self,
@@ -128,6 +142,80 @@ class BookingService:
                     "booking.cancelled notification was not created."
                 )
             return booking
+
+    def approve(self, *, admin, booking_id) -> Booking:
+        """Approve a PENDING booking and open its payment window (Story 6.2).
+
+        One atomic block: booking → ``APPROVED`` (+ ``approved_at``), the same
+        ``NOT_OPEN`` window → ``OPEN`` via ``PaymentService`` (deadline =
+        approval + 24h), ``booking.approve`` audit, ``booking.approved``
+        notification. Any failure rolls everything back.
+
+        Raises ``Booking.DoesNotExist`` (unknown id), ``BookingNotApprovable``
+        (not PENDING / window not openable) or Django ``ValidationError``
+        (7-day rule fails at approve time, or the window row is missing).
+        """
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking_id)
+            if booking.status != BookingStatus.PENDING:
+                raise BookingNotApprovable("Only pending bookings can be approved.")
+            try:
+                assert_bookable_date(booking.available_date.tour_date)
+            except ValueError as exc:
+                raise ValidationError({"detail": [str(exc)]}) from exc
+
+            before = self._decision_snapshot(booking)
+            approved_at = timezone.now()
+            booking.status = BookingStatus.APPROVED
+            booking.approved_at = approved_at
+            booking.save(update_fields=["status", "approved_at", "updated_at"])
+            try:
+                window = self.payments.open_window_for_booking(
+                    booking, opened_at=approved_at
+                )
+            except PaymentWindowMissing as exc:
+                raise ValidationError({"detail": [str(exc)]}) from exc
+            except PaymentWindowNotOpenable as exc:
+                raise BookingNotApprovable(str(exc)) from exc
+
+            self.audit.record(
+                actor_id=admin.id,
+                action=BOOKING_APPROVE_AUDIT_ACTION,
+                target_type=BOOKING_ENTITY_TYPE,
+                target_id=str(booking.id),
+                before=before,
+                after=self._decision_snapshot(booking, window=window),
+            )
+            notification = self.notifications.create(
+                recipient_id=booking.customer_id,
+                event_key=BOOKING_APPROVED_EVENT,
+                entity_type=BOOKING_ENTITY_TYPE,
+                entity_id=booking.id,
+                payload={
+                    "reference": booking.reference,
+                    "booking_id": str(booking.id),
+                    "status": booking.status,
+                    "payment_window_deadline_at": window.deadline_at.isoformat(),
+                },
+            )
+            if notification is None:
+                raise RuntimeError("booking.approved notification was not created.")
+            return booking
+
+    @staticmethod
+    def _decision_snapshot(booking: Booking, *, window=None) -> dict[str, Any]:
+        """Audit before/after snapshot of the booking and its window state."""
+        if window is None:
+            window = getattr(booking, "payment_window", None)
+        deadline = window.deadline_at if window else None
+        return {
+            "status": booking.status,
+            "approved_at": booking.approved_at.isoformat()
+            if booking.approved_at
+            else None,
+            "payment_window_status": window.status if window else None,
+            "payment_window_deadline_at": deadline.isoformat() if deadline else None,
+        }
 
     def _create_booking_row(
         self,

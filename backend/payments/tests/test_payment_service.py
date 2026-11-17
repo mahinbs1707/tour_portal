@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from accounts.models import Role
 from bookings.models import Booking, BookingStatus
@@ -14,7 +15,11 @@ from bookings.services import reference_from_uuid
 from packages.models import AvailableDate, PackageStatus, TourPackage
 from packages.validators import min_bookable_date, today_in_business_tz
 from payments.models import Payment, PaymentStatus, PaymentWindow, PaymentWindowStatus
-from payments.services import PaymentService
+from payments.services import (
+    PaymentService,
+    PaymentWindowMissing,
+    PaymentWindowNotOpenable,
+)
 
 User = get_user_model()
 
@@ -78,3 +83,44 @@ class PaymentServiceTests(TestCase):
         PaymentService().create_not_open_for_booking(self.booking)
         with self.assertRaises(ValueError):
             PaymentService().create_not_open_for_booking(self.booking)
+
+    # --- open_window_for_booking (Story 6.2) -------------------------
+
+    def test_open_window_updates_same_row_with_24h_deadline(self):
+        created = PaymentService().create_not_open_for_booking(self.booking)
+        opened_at = timezone.now()
+
+        window = PaymentService().open_window_for_booking(
+            self.booking, opened_at=opened_at
+        )
+
+        self.assertEqual(window.pk, created.pk)
+        self.assertEqual(PaymentWindow.objects.filter(booking=self.booking).count(), 1)
+        window.refresh_from_db()
+        self.assertEqual(window.status, PaymentWindowStatus.OPEN)
+        self.assertEqual(window.opened_at, opened_at)
+        self.assertEqual(window.deadline_at, opened_at + timedelta(hours=24))
+        # Payment ledger is untouched: still one UNPAID row.
+        payment = Payment.objects.get(booking=self.booking)
+        self.assertEqual(payment.status, PaymentStatus.UNPAID)
+
+    def test_open_window_missing_row_raises_and_inserts_nothing(self):
+        with self.assertRaises(PaymentWindowMissing):
+            PaymentService().open_window_for_booking(
+                self.booking, opened_at=timezone.now()
+            )
+        self.assertEqual(PaymentWindow.objects.filter(booking=self.booking).count(), 0)
+
+    def test_open_window_refuses_non_not_open_status(self):
+        PaymentService().create_not_open_for_booking(self.booking)
+        PaymentService().open_window_for_booking(self.booking, opened_at=timezone.now())
+        before = PaymentWindow.objects.get(booking=self.booking)
+
+        with self.assertRaises(PaymentWindowNotOpenable):
+            PaymentService().open_window_for_booking(
+                self.booking, opened_at=timezone.now() + timedelta(hours=5)
+            )
+
+        after = PaymentWindow.objects.get(booking=self.booking)
+        self.assertEqual(after.deadline_at, before.deadline_at)
+        self.assertEqual(PaymentWindow.objects.filter(booking=self.booking).count(), 1)

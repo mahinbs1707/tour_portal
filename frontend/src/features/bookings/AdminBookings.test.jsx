@@ -5,14 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 
-const { listMock, getMock } = vi.hoisted(() => ({
+const { listMock, getMock, approveMock } = vi.hoisted(() => ({
   listMock: vi.fn(),
   getMock: vi.fn(),
+  approveMock: vi.fn(),
 }));
 
 vi.mock("./adminBookingsApi.js", () => ({
   listAdminBookings: (...args) => listMock(...args),
   getAdminBooking: (...args) => getMock(...args),
+  approveAdminBooking: (...args) => approveMock(...args),
 }));
 
 import { AdminBookingDetailPage } from "./AdminBookingDetailPage.jsx";
@@ -80,6 +82,7 @@ function renderRoutes(url) {
 beforeEach(() => {
   listMock.mockReset();
   getMock.mockReset();
+  approveMock.mockReset();
 });
 
 afterEach(() => {
@@ -370,13 +373,194 @@ describe("AdminBookingDetailPage", () => {
     );
   });
 
-  it("has no approve / reject / window / Pay / Cancel controls", async () => {
+  it("offers only Approve on a PENDING booking (no reject / window / Pay / Cancel)", async () => {
     getMock.mockResolvedValue(PENDING);
     renderRoutes("/app/admin/bookings/b-1");
     await screen.findByTestId("admin-booking-detail-reference");
-    expect(screen.queryByRole("button")).toBeNull();
+    const buttons = screen.getAllByRole("button");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toHaveAttribute("data-testid", "admin-booking-approve-button");
+    expect(buttons[0]).toHaveTextContent(messages.adminBookings.approveBooking);
     expect(screen.queryByTestId("booking-cancel-button")).toBeNull();
-    expect(screen.queryByText(/pay now/i)).toBeNull();
+    expect(screen.queryByText(/pay now|reject|reopen|extend/i)).toBeNull();
+  });
+
+  it.each(["APPROVED", "REJECTED", "CANCELLED"])(
+    "hides Approve when the booking is %s",
+    async (status) => {
+      getMock.mockResolvedValue({ ...PENDING, status });
+      renderRoutes("/app/admin/bookings/b-1");
+      await screen.findByTestId("admin-booking-detail-reference");
+      expect(screen.queryByRole("button")).toBeNull();
+      expect(screen.queryByTestId("admin-booking-approve-button")).toBeNull();
+    },
+  );
+
+  describe("approve", () => {
+    async function openConfirm(user) {
+      renderRoutes("/app/admin/bookings/b-1");
+      await user.click(await screen.findByTestId("admin-booking-approve-button"));
+      return screen.findByRole("dialog");
+    }
+
+    it("confirm dialog states the 24h window starts on approve, with no computed deadline", async () => {
+      getMock.mockResolvedValue(PENDING);
+      const user = userEvent.setup();
+      const dialog = await openConfirm(user);
+
+      expect(dialog).toHaveTextContent(messages.adminBookings.approveDialogTitle);
+      expect(dialog).toHaveTextContent("24-hour payment window");
+      expect(dialog).toHaveTextContent("ABCDEF123456");
+      expect(dialog.textContent).not.toMatch(/\d{4}-\d{2}-\d{2}|\d{1,2}:\d{2}/);
+      expect(approveMock).not.toHaveBeenCalled();
+    });
+
+    it("cancelling the dialog does not approve and keeps Approve available", async () => {
+      getMock.mockResolvedValue(PENDING);
+      const user = userEvent.setup();
+      await openConfirm(user);
+
+      await user.click(
+        screen.getByRole("button", { name: messages.adminBookings.approveDialogKeep }),
+      );
+
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(approveMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId("admin-booking-approve-button")).toBeInTheDocument();
+    });
+
+    it("Esc closes the dialog without approving", async () => {
+      getMock.mockResolvedValue(PENDING);
+      const user = userEvent.setup();
+      await openConfirm(user);
+      await user.keyboard("{Escape}");
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(approveMock).not.toHaveBeenCalled();
+    });
+
+    it("on success stays on detail, refreshes statuses, shows role=status, and hides Approve", async () => {
+      getMock.mockResolvedValue(PENDING);
+      approveMock.mockResolvedValue({
+        ...PENDING,
+        status: "APPROVED",
+        payment_window_status: "OPEN",
+      });
+      const user = userEvent.setup();
+      await openConfirm(user);
+
+      await user.click(
+        screen.getByRole("button", { name: messages.adminBookings.approveDialogConfirm }),
+      );
+
+      const status = await screen.findByRole("status");
+      expect(status).toHaveTextContent("ABCDEF123456");
+      expect(status).toHaveTextContent("24-hour payment window is now open");
+      expect(approveMock).toHaveBeenCalledTimes(1);
+      expect(approveMock).toHaveBeenCalledWith("b-1");
+      expect(screen.getByTestId("admin-booking-detail-booking-status")).toHaveTextContent(
+        messages.booking.bookingStatus.APPROVED,
+      );
+      expect(screen.getByTestId("admin-booking-detail-payment-status")).toHaveTextContent(
+        messages.booking.paymentStatus.UNPAID,
+      );
+      expect(screen.getByTestId("admin-booking-detail-window-status")).toHaveTextContent(
+        messages.booking.windowStatus.OPEN,
+      );
+      expect(screen.queryByTestId("admin-booking-approve-button")).toBeNull();
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByTestId("admin-booking-detail-page")).toBeInTheDocument();
+    });
+
+    it("shows the server reason in a role=alert when the 7-day rule blocks approval", async () => {
+      getMock.mockResolvedValue(PENDING);
+      approveMock.mockRejectedValue(
+        apiError(400, "Travel date must be on or after 2099-01-08 (7 calendar days ahead)."),
+      );
+      const user = userEvent.setup();
+      await openConfirm(user);
+
+      await user.click(
+        screen.getByRole("button", { name: messages.adminBookings.approveDialogConfirm }),
+      );
+
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent("This booking cannot be approved.");
+      expect(alert).toHaveTextContent("7 calendar days ahead");
+      // Nothing changed: still PENDING with Approve available, no success message.
+      expect(screen.getByTestId("admin-booking-approve-button")).toBeInTheDocument();
+      expect(screen.queryByRole("status")).toBeNull();
+      expect(screen.getByTestId("admin-booking-detail-booking-status")).toHaveTextContent(
+        messages.booking.bookingStatus.PENDING,
+      );
+    });
+
+    it("409 shows not-pending alert and refreshes the booking (Approve disappears)", async () => {
+      getMock.mockResolvedValueOnce(PENDING);
+      getMock.mockResolvedValue({ ...PENDING, status: "CANCELLED" });
+      approveMock.mockRejectedValue(apiError(409, "Only pending bookings can be approved."));
+      const user = userEvent.setup();
+      await openConfirm(user);
+
+      await user.click(
+        screen.getByRole("button", { name: messages.adminBookings.approveDialogConfirm }),
+      );
+
+      expect(await screen.findByTestId("admin-booking-approve-error")).toHaveTextContent(
+        messages.adminBookings.errors.approveNotPending,
+      );
+      await waitFor(() =>
+        expect(screen.queryByTestId("admin-booking-approve-button")).toBeNull(),
+      );
+      expect(getMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("admin-booking-detail-booking-status")).toHaveTextContent(
+        messages.booking.bookingStatus.CANCELLED,
+      );
+    });
+
+    it("5xx reports an unknown outcome and reloads live state", async () => {
+      getMock.mockResolvedValueOnce(PENDING);
+      getMock.mockResolvedValue({
+        ...PENDING,
+        status: "APPROVED",
+        payment_window_status: "OPEN",
+      });
+      approveMock.mockRejectedValue(apiError(500));
+      const user = userEvent.setup();
+      await openConfirm(user);
+
+      await user.click(
+        screen.getByRole("button", { name: messages.adminBookings.approveDialogConfirm }),
+      );
+
+      expect(await screen.findByTestId("admin-booking-approve-error")).toHaveTextContent(
+        messages.adminBookings.errors.approveOutcomeUnknown,
+      );
+      await waitFor(() =>
+        expect(screen.queryByTestId("admin-booking-approve-button")).toBeNull(),
+      );
+      expect(screen.getByTestId("admin-booking-detail-window-status")).toHaveTextContent(
+        messages.booking.windowStatus.OPEN,
+      );
+    });
+
+    it("a double-clicked confirm sends a single approve request", async () => {
+      getMock.mockResolvedValue(PENDING);
+      let resolveApprove;
+      approveMock.mockImplementation(
+        () => new Promise((resolve) => { resolveApprove = resolve; }),
+      );
+      const user = userEvent.setup();
+      await openConfirm(user);
+      const confirm = screen.getByRole("button", {
+        name: messages.adminBookings.approveDialogConfirm,
+      });
+
+      await user.dblClick(confirm);
+      resolveApprove({ ...PENDING, status: "APPROVED", payment_window_status: "OPEN" });
+
+      await screen.findByRole("status");
+      expect(approveMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("shows a not-found state for 404", async () => {

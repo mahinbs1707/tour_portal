@@ -1,6 +1,10 @@
 from django.urls import path
 
-from bookings.admin_views import AdminBookingDetailView, AdminBookingListView
+from bookings.admin_views import (
+    AdminBookingApproveView,
+    AdminBookingDetailView,
+    AdminBookingListView,
+)
 from bookings.views import (
     BookingCancelView,
     BookingDetailView,
@@ -14,6 +18,11 @@ urlpatterns = [
         "admin/<uuid:booking_id>/",
         AdminBookingDetailView.as_view(),
         name="admin-booking-detail",
+    ),
+    path(
+        "admin/<uuid:booking_id>/approve/",
+        AdminBookingApproveView.as_view(),
+        name="admin-booking-approve",
     ),
     path("<uuid:booking_id>/", BookingDetailView.as_view(), name="booking-detail"),
     path(

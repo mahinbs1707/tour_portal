@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-17-2026 16:57
+last_updated: 11-17-2026 17:15
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -73,7 +73,7 @@ development_status:
 
   epic-6: in-progress
   6-1-admin-bookings-list-filter-and-detail: review
-  6-2-approve-booking-and-open-payment-window: backlog
+  6-2-approve-booking-and-open-payment-window: review
   6-3-reject-booking-with-mandatory-reason: backlog
   6-4-reopen-and-extend-payment-window: backlog
   epic-6-retrospective: optional

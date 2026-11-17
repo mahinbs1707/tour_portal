@@ -26,6 +26,7 @@ vi.mock("../../services/apiClient.js", async () => {
 vi.mock("./adminBookingsApi.js", () => ({
   listAdminBookings: (...args) => listMock(...args),
   getAdminBooking: (...args) => getMock(...args),
+  approveAdminBooking: vi.fn(),
 }));
 
 vi.mock("./bookingsApi.js", () => ({

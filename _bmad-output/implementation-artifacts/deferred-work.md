@@ -162,3 +162,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-6-1-admin-bookings-list-filter-and-detail.md`
   summary: Add Admin booking search by reference / customer identity when triage volume grows
   evidence: Story 6.1 AC is status filter + detail only
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-2-approve-booking-and-open-payment-window.md`
+  summary: Re-verify BookingService.approve / PaymentService.open_window select_for_update under Postgres
+  evidence: SQLite ignores row locks; atomic rollback is covered in APITestCase
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-2-approve-booking-and-open-payment-window.md`
+  summary: Expose payment_window deadline_at on Admin (and later Customer) booking detail when Pay UX needs it
+  evidence: Deadline is stored and audited; Admin serializer still shows status chips only

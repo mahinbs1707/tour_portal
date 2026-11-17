@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { BookingStatusChips } from "./BookingStatusChips.jsx";
-import { getAdminBooking } from "./adminBookingsApi.js";
+import { ConfirmDialog } from "../packages/ConfirmDialog.jsx";
+import { approveAdminBooking, getAdminBooking } from "./adminBookingsApi.js";
 import { formatSubmittedAt } from "./bookingFormat.js";
 
 function DetailRow({ label, children, testId }) {
@@ -26,8 +27,10 @@ const sectionClass =
   "mt-8 m-0 grid gap-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-5 sm:grid-cols-2";
 
 /**
- * Admin booking detail (Story 6.1) — read-only. No approve / reject /
- * payment-window / Pay / Cancel controls; those arrive in Stories 6.2–6.4.
+ * Admin booking detail. Story 6.1: read-only detail. Story 6.2: Approve (only
+ * while PENDING) behind a confirm dialog with fixed 24h-window copy; after
+ * success the page stays here and shows the refreshed statuses. Reject /
+ * reopen / extend / Pay / Cancel arrive in later stories.
  */
 export function AdminBookingDetailPage() {
   const { id } = useParams();
@@ -35,7 +38,12 @@ export function AdminBookingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState("");
+  const [approveSuccess, setApproveSuccess] = useState("");
   const generationRef = useRef(0);
+  const approvingRef = useRef(false);
 
   const load = useCallback(async () => {
     const generation = ++generationRef.current;
@@ -67,11 +75,76 @@ export function AdminBookingDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    // New :id — drop approve UI state from the previous booking.
+    setConfirmOpen(false);
+    setApproveError("");
+    setApproveSuccess("");
     load();
     return () => {
       generationRef.current += 1;
     };
   }, [load]);
+
+  const closeConfirm = useCallback(() => setConfirmOpen(false), []);
+
+  async function handleApproveConfirm() {
+    if (approvingRef.current || !booking) {
+      return;
+    }
+    const generation = generationRef.current;
+    approvingRef.current = true;
+    setApproving(true);
+    setApproveError("");
+    setApproveSuccess("");
+    try {
+      const updated = await approveAdminBooking(booking.id);
+      if (generation !== generationRef.current) {
+        return;
+      }
+      // 1A: stay on detail; live booking / payment / window statuses.
+      setBooking(updated);
+      setApproveSuccess(
+        messages.adminBookings.approveSuccess.replace(
+          "{reference}",
+          updated.reference,
+        ),
+      );
+      setConfirmOpen(false);
+    } catch (err) {
+      if (generation !== generationRef.current) {
+        return;
+      }
+      setConfirmOpen(false);
+      const errors = messages.adminBookings.errors;
+      if (err instanceof ApiError && err.status === 409) {
+        setApproveError(errors.approveNotPending);
+        // Booking changed underneath us — refresh live status (Approve disappears).
+        load();
+      } else if (err instanceof ApiError && err.status === 404) {
+        setBooking(null);
+        setNotFound(true);
+      } else if (err instanceof ApiError && err.status === 400) {
+        // e.g. the 7-day rule no longer holds; nothing changed server-side.
+        const reason = err.nonFieldErrors[0] || "";
+        setApproveError(
+          reason
+            ? errors.approveBlocked.replace("{reason}", reason)
+            : errors.approveGeneric,
+        );
+      } else if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setApproveError(errors.approveGeneric);
+      } else {
+        // Network/timeout/5xx: the approval may or may not have been applied.
+        setApproveError(errors.approveOutcomeUnknown);
+        load();
+      }
+    } finally {
+      approvingRef.current = false;
+      setApproving(false);
+    }
+  }
+
+  const canApprove = booking?.status === "PENDING";
 
   return (
     <section
@@ -131,6 +204,26 @@ export function AdminBookingDetailPage() {
             {messages.booking.retry}
           </button>
         </div>
+      ) : null}
+
+      {approveSuccess ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-body-sm"
+          role="status"
+          data-testid="admin-booking-approve-success"
+        >
+          {approveSuccess}
+        </p>
+      ) : null}
+
+      {approveError ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-3 py-2 text-body-sm text-[var(--color-destructive)]"
+          role="alert"
+          data-testid="admin-booking-approve-error"
+        >
+          {approveError}
+        </p>
       ) : null}
 
       {!loading && booking ? (
@@ -229,8 +322,41 @@ export function AdminBookingDetailPage() {
               {orPlaceholder(booking.contact_phone)}
             </DetailRow>
           </dl>
+
+          {canApprove ? (
+            <div className="mt-8">
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                onClick={() => {
+                  setApproveError("");
+                  setApproveSuccess("");
+                  setConfirmOpen(true);
+                }}
+                disabled={approving}
+                data-testid="admin-booking-approve-button"
+              >
+                {approving
+                  ? messages.adminBookings.approving
+                  : messages.adminBookings.approveBooking}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmOpen && canApprove}
+        title={messages.adminBookings.approveDialogTitle}
+        body={messages.adminBookings.approveDialogBody.replace(
+          "{reference}",
+          booking?.reference || "",
+        )}
+        confirmLabel={messages.adminBookings.approveDialogConfirm}
+        cancelLabel={messages.adminBookings.approveDialogKeep}
+        onConfirm={handleApproveConfirm}
+        onCancel={closeConfirm}
+      />
     </section>
   );
 }

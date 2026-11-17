@@ -6,7 +6,11 @@ vi.mock("../../services/apiClient.js", () => ({
   apiRequest: (...args) => apiRequestMock(...args),
 }));
 
-import { getAdminBooking, listAdminBookings } from "./adminBookingsApi.js";
+import {
+  approveAdminBooking,
+  getAdminBooking,
+  listAdminBookings,
+} from "./adminBookingsApi.js";
 
 beforeEach(() => {
   apiRequestMock.mockReset();
@@ -31,6 +35,14 @@ describe("adminBookingsApi", () => {
     expect(apiRequestMock).toHaveBeenLastCalledWith("/api/bookings/admin/", {
       method: "GET",
     });
+  });
+
+  it("approves by UUID id with POST (CSRF handled by apiRequest)", async () => {
+    await approveAdminBooking("abc-123");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/admin/abc-123/approve/",
+      { method: "POST" },
+    );
   });
 
   it("fetches detail by UUID id", async () => {

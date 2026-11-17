@@ -262,7 +262,6 @@ class AdminBookingAPITests(APITestCase):
             ("post", "/api/bookings/admin/"),
             ("patch", f"/api/bookings/admin/{booking.id}/"),
             ("delete", f"/api/bookings/admin/{booking.id}/"),
-            ("post", f"/api/bookings/admin/{booking.id}/approve/"),
         ):
             response = getattr(self.client, method)(path, **self._headers())
             self.assertIn(

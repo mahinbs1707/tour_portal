@@ -290,9 +290,23 @@ export const messages = {
     customerNameLabel: "Account name",
     customerEmailLabel: "Account email",
     contactSectionTitle: "Booking contact",
+    approveBooking: "Approve booking",
+    approving: "Approving…",
+    approveDialogTitle: "Approve this booking?",
+    approveDialogBody:
+      "Approving booking {reference} starts a 24-hour payment window for the customer. The window opens as soon as you approve.",
+    approveDialogConfirm: "Yes, approve booking",
+    approveDialogKeep: "Keep pending",
+    approveSuccess:
+      "Booking {reference} was approved. The 24-hour payment window is now open.",
     errors: {
       listGeneric: "We could not load bookings. Please try again.",
       detailGeneric: "We could not load this booking. Please try again.",
+      approveGeneric: "We could not approve this booking. Please try again.",
+      approveBlocked: "This booking cannot be approved. {reason}",
+      approveNotPending: "Only pending bookings can be approved.",
+      approveOutcomeUnknown:
+        "We could not confirm whether the booking was approved. We have refreshed it below — check its status before trying again.",
     },
   },
   customerHome: {

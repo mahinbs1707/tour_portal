@@ -17,6 +17,17 @@ export function listAdminBookings({ page = 1, status = "" } = {}) {
   return apiRequest(`/api/bookings/admin/${query}`, { method: "GET" });
 }
 
+/**
+ * POST /api/bookings/admin/<uuid>/approve/ — approve a PENDING booking and open
+ * its 24h payment window (Story 6.2). Resolves to the Admin booking detail.
+ */
+export function approveAdminBooking(bookingId) {
+  return apiRequest(
+    `/api/bookings/admin/${encodeURIComponent(bookingId)}/approve/`,
+    { method: "POST" },
+  );
+}
+
 /** GET /api/bookings/admin/<uuid>/ — Admin booking detail. */
 export function getAdminBooking(bookingId) {
   return apiRequest(

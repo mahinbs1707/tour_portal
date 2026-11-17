@@ -1,19 +1,24 @@
-"""Admin booking list + detail API (Story 6.1) — read-only, Admin role only.
+"""Admin booking API — Admin role only.
 
-Decisions (approve/reject) and payment-window control land in Stories 6.2–6.4.
-This module never mutates bookings or ``PaymentWindow`` rows.
+Story 6.1: list + detail (read-only). Story 6.2: approve. Reject and
+payment-window reopen/extend land in Stories 6.3–6.4. This module never writes
+``PaymentWindow`` rows; approve delegates to ``BookingService`` → ``PaymentService``.
 """
 
 from __future__ import annotations
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.authentication import CsrfSessionAuthentication
 from bookings.models import Booking, BookingStatus
 from bookings.serializers import AdminBookingSerializer
+from bookings.services import BookingNotApprovable, BookingService
 from common.permissions import IsAdminRole
 
 # Same page size as the Admin packages list (AD-11).
@@ -71,3 +76,26 @@ class AdminBookingDetailView(RetrieveAPIView):
 
     def get_queryset(self):
         return _all_bookings()
+
+
+class AdminBookingApproveView(APIView):
+    """POST /api/bookings/admin/<uuid>/approve/ — approve a PENDING booking.
+
+    404 unknown id; 409 not PENDING; 400 when the 7-day rule fails at approve
+    time or the booking has no payment window. Returns the Admin detail shape.
+    """
+
+    permission_classes = [IsAdminRole]
+    authentication_classes = [CsrfSessionAuthentication]
+
+    def post(self, request, booking_id):
+        try:
+            booking = BookingService().approve(admin=request.user, booking_id=booking_id)
+        except Booking.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        except BookingNotApprovable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        except DjangoValidationError as exc:
+            return Response(exc.message_dict, status=status.HTTP_400_BAD_REQUEST)
+        booking = get_object_or_404(_all_bookings(), pk=booking.pk)
+        return Response(AdminBookingSerializer(booking).data)
