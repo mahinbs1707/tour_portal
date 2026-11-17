@@ -163,7 +163,9 @@ describe("PackageDetailPage", () => {
     expect(cta).toHaveTextContent(messages.explore.bookNow);
     expect(cta).toHaveAttribute(
       "href",
-      `/sign-in?next=${encodeURIComponent(`/explore/${BOOKABLE_PKG.id}`)}`,
+      `/sign-in?next=${encodeURIComponent(
+        `/app/bookings/new?package=${encodeURIComponent(BOOKABLE_PKG.id)}`,
+      )}`,
     );
   });
 

@@ -193,13 +193,15 @@ export function PackageDetailPage() {
     };
   }, [id]);
 
-  const detailPath = id ? `/explore/${id}` : "/explore";
+  const bookingFormPath = id
+    ? `/app/bookings/new?package=${encodeURIComponent(id)}`
+    : "/app/bookings/new";
   const isGuest = !isAuthenticated;
   const isCustomer = isAuthenticated && role === "CUSTOMER";
   const canShowBookNow = isGuest || isCustomer;
   const bookNowHref = isGuest
-    ? `/sign-in?next=${encodeURIComponent(detailPath)}`
-    : `/app/bookings/new?package=${encodeURIComponent(id)}`;
+    ? `/sign-in?next=${encodeURIComponent(bookingFormPath)}`
+    : bookingFormPath;
 
   const showLoading = loading || bootstrapping;
   const showNotFound = !loading && !bootstrapping && notFound;

@@ -1,8 +1,9 @@
 import { useId, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError, me, register } from "../../services/apiClient.js";
 import { useAuth } from "./AuthContext.jsx";
+import { safeNextPath } from "./safeNextPath.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_POLICY = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
@@ -39,8 +40,14 @@ const errorClass = "mt-1 text-body-sm text-[var(--color-destructive)]";
 
 export function SignUpPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setUser } = useAuth();
   const formId = useId();
+  const nextParam = searchParams.get("next");
+  const safeNext = safeNextPath(nextParam);
+  const signInHref = safeNext
+    ? `/sign-in?next=${encodeURIComponent(safeNext)}`
+    : "/sign-in";
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -98,7 +105,7 @@ export function SignUpPage() {
           is_superuser: false,
         });
       }
-      navigate("/", { replace: true });
+      navigate(safeNext ?? "/", { replace: true });
     } catch (error) {
       setPassword("");
       setConfirmPassword("");
@@ -282,7 +289,7 @@ export function SignUpPage() {
       <p className="mt-6 text-body-sm text-[var(--color-muted-foreground)]">
         {messages.auth.haveAccount}{" "}
         <Link
-          to="/sign-in"
+          to={signInHref}
           className="font-semibold text-[var(--color-primary)] underline-offset-2 hover:underline"
         >
           {messages.nav.signIn}

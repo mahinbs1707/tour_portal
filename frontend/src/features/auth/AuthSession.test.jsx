@@ -188,8 +188,9 @@ describe("Auth session bootstrap and chrome", () => {
     document.cookie = "csrftoken=tok; path=/";
 
     const user = userEvent.setup();
+    const bookingPath = "/app/bookings/new?package=pkg-1";
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[bookingPath]}>
         <AuthProvider>
           <SessionExpiredModal />
           <button
@@ -217,7 +218,10 @@ describe("Auth session bootstrap and chrome", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: messages.nav.signIn }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute(
+      "href",
+      `/sign-in?next=${encodeURIComponent(bookingPath)}`,
+    );
     expect(restoreSpy).toHaveBeenCalledTimes(1);
   });
 });

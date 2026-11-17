@@ -1,12 +1,20 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { useAuth } from "./AuthContext.jsx";
+import { safeNextPath } from "./safeNextPath.js";
 
 /**
  * Session-ended modal (UX-DR11). Shown when apiClient receives 401.
  */
 export function SessionExpiredModal() {
   const { sessionExpiredOpen, dismissSessionExpired } = useAuth();
+  const location = useLocation();
+  const returnTo = safeNextPath(
+    `${location.pathname}${location.search}${location.hash}`,
+  );
+  const signInHref = returnTo
+    ? `/sign-in?next=${encodeURIComponent(returnTo)}`
+    : "/sign-in";
 
   if (!sessionExpiredOpen) {
     return null;
@@ -40,7 +48,7 @@ export function SessionExpiredModal() {
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
-            to="/sign-in"
+            to={signInHref}
             className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
             onClick={dismissSessionExpired}
           >

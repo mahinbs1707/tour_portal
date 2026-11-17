@@ -41,6 +41,11 @@ export function SignInPage() {
   const emailId = `${formId}-email`;
   const passwordId = `${formId}-password`;
   const statusId = `${formId}-status`;
+  const nextParam = searchParams.get("next");
+  const safeNext = safeNextPath(nextParam);
+  const signUpHref = safeNext
+    ? `/sign-up?next=${encodeURIComponent(safeNext)}`
+    : "/sign-up";
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -64,8 +69,7 @@ export function SignInPage() {
         email: email.trim(),
         password,
       });
-      const returnTo = safeNextPath(searchParams.get("next"));
-      navigate(returnTo ?? "/", { replace: true });
+      navigate(safeNext ?? "/", { replace: true });
     } catch (error) {
       setPassword("");
       if (error instanceof ApiError) {
@@ -180,7 +184,7 @@ export function SignInPage() {
       <p className="mt-6 text-body-sm text-[var(--color-muted-foreground)]">
         {messages.auth.needAccount}{" "}
         <Link
-          to="/sign-up"
+          to={signUpHref}
           className="font-semibold text-[var(--color-primary)] underline-offset-2 hover:underline"
         >
           {messages.nav.signUp}

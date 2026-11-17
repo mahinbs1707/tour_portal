@@ -42,9 +42,9 @@ vi.mock("../../services/apiClient.js", async () => {
 
 import { ApiError } from "../../services/apiClient.js";
 
-function renderSignUp() {
+function renderSignUp(path = "/sign-up") {
   return render(
-    <MemoryRouter initialEntries={["/sign-up"]}>
+    <MemoryRouter initialEntries={[path]}>
       <AuthProvider>
         <SignUpPage />
       </AuthProvider>
@@ -270,5 +270,58 @@ describe("SignUpPage", () => {
       });
     });
     expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
+  });
+
+  it("preserves next on the Sign in link", () => {
+    const next = "/app/bookings/new?package=pkg-1";
+    renderSignUp(`/sign-up?next=${encodeURIComponent(next)}`);
+    expect(
+      screen.getByRole("link", { name: messages.nav.signIn }),
+    ).toHaveAttribute("href", `/sign-in?next=${encodeURIComponent(next)}`);
+  });
+
+  it("honors safe next after sign up", async () => {
+    const user = userEvent.setup();
+    registerMock.mockResolvedValue({
+      id: "uuid",
+      email: "alex@example.com",
+      full_name: "Alex Traveler",
+      role: "CUSTOMER",
+    });
+    meMock.mockResolvedValue({
+      id: "uuid",
+      email: "alex@example.com",
+      full_name: "Alex Traveler",
+      role: "CUSTOMER",
+      is_staff: false,
+      is_superuser: false,
+    });
+
+    const next = "/app/bookings/new?package=pkg-1";
+    renderSignUp(`/sign-up?next=${encodeURIComponent(next)}`);
+
+    await user.type(
+      screen.getByLabelText(messages.auth.fullName),
+      "Alex Traveler",
+    );
+    await user.type(
+      screen.getByLabelText(messages.auth.email),
+      "alex@example.com",
+    );
+    await user.type(
+      screen.getByLabelText(messages.auth.password),
+      "SecurePass1",
+    );
+    await user.type(
+      screen.getByLabelText(messages.auth.confirmPassword),
+      "SecurePass1",
+    );
+    await user.click(
+      screen.getByRole("button", { name: messages.auth.submitSignUp }),
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith(next, { replace: true });
+    });
   });
 });

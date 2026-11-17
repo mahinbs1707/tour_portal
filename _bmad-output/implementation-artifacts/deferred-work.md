@@ -132,3 +132,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-1-booking-create-api-with-7-day-rule-asia-dhaka.md`
   summary: Prefer latest payment attempt status in booking responses once Epic 7 multi-attempt payments exist
   evidence: Response currently uses oldest payment by created_at; fine for single UNPAID row in 5.1
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-booking-form-review-and-auth-return.md`
+  summary: Replace confirmation My bookings CTA with real history once Story 5.3 lands
+  evidence: Thin confirmation currently links to Placeholder /app/customer/bookings by design
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-booking-form-review-and-auth-return.md`
+  summary: Align FE min-bookable calendar day with Asia/Dhaka business timezone (not browser local Date)
+  evidence: FE reuses packagesApi.minBookableDateIso local arithmetic; BE Asia/Dhaka remains authoritative
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-booking-form-review-and-auth-return.md`
+  summary: Extract formatTourDate / mapUnavailableReason into a shared packages helper module
+  evidence: BookingFormPage imports from PackageDetailPage; coupling is acceptable short-term

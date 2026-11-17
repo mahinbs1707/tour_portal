@@ -133,6 +133,14 @@ describe("SignInPage", () => {
     expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
   });
 
+  it("preserves next on the Sign up link", () => {
+    const next = "/app/bookings/new?package=pkg-1";
+    renderSignIn(`/sign-in?next=${encodeURIComponent(next)}`);
+    expect(
+      screen.getByRole("link", { name: messages.nav.signUp }),
+    ).toHaveAttribute("href", `/sign-up?next=${encodeURIComponent(next)}`);
+  });
+
   it("honors safe next including hash after sign in", async () => {
     const user = userEvent.setup();
     loginMock.mockResolvedValue({

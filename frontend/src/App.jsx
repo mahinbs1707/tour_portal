@@ -8,6 +8,8 @@ import { SignInPage } from "./features/auth/SignInPage.jsx";
 import { SignOutPage } from "./features/auth/SignOutPage.jsx";
 import { SignUpPage } from "./features/auth/SignUpPage.jsx";
 import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
+import { BookingConfirmationPage } from "./features/bookings/BookingConfirmationPage.jsx";
+import { BookingFormPage } from "./features/bookings/BookingFormPage.jsx";
 import { AdminPackageFormPage } from "./features/packages/AdminPackageFormPage.jsx";
 import { AdminPackagesPage } from "./features/packages/AdminPackagesPage.jsx";
 import { ExplorePage } from "./features/packages/ExplorePage.jsx";
@@ -34,7 +36,7 @@ export function AppRoutes() {
       </Route>
 
       <Route
-        path="app/bookings/new"
+        path="app/bookings"
         element={
           <RequireAuth>
             <RequireRole role="CUSTOMER">
@@ -43,15 +45,9 @@ export function AppRoutes() {
           </RequireAuth>
         }
       >
-        <Route
-          index
-          element={
-            <PlaceholderPage
-              title={messages.explore.bookingStubTitle}
-              body={messages.explore.bookingStubBody}
-            />
-          }
-        />
+        <Route index element={<Navigate to="new" replace />} />
+        <Route path="new" element={<BookingFormPage />} />
+        <Route path="confirmation" element={<BookingConfirmationPage />} />
       </Route>
 
       <Route

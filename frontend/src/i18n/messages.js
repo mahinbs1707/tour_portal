@@ -130,13 +130,61 @@ export const messages = {
       "This package is not available for booking right now.",
     bookingUnavailableNoDates:
       "No qualifying travel dates are available for booking.",
-    bookingStubTitle: "Booking",
-    bookingStubBody:
-      "Booking for this package will open here in a later update. Your package selection is ready.",
     backToExplore: "Back to Explore",
     errors: {
       generic: "Something went wrong. Please try again.",
       validation: "Fix the highlighted filters and apply again, or clear them.",
+    },
+  },
+  booking: {
+    title: "Request a booking",
+    subtitle:
+      "Choose a travel date and contact details, then review before you submit.",
+    loading: "Loading booking form…",
+    missingPackage:
+      "Choose a published package from Explore before starting a booking request.",
+    noBookableDates:
+      "No qualifying travel dates are available for booking on this package.",
+    backToPackage: "Back to package",
+    packageLabel: "Package",
+    dateLabel: "Preferred travel date",
+    datePlaceholder: "Select a travel date",
+    dateHelper:
+      "Dates within the next 7 calendar days (before {minDate}, Asia/Dhaka) are not selectable so we can prepare your trip.",
+    travelersLabel: "Number of travelers",
+    nameLabel: "Full name",
+    emailLabel: "Contact email",
+    phoneLabel: "Contact phone",
+    requirementsLabel: "Additional requirements (optional)",
+    continueToReview: "Continue to review",
+    reviewTitle: "Review your booking",
+    reviewSubtitle: "Confirm the details below, then submit your request.",
+    backToForm: "Edit details",
+    confirmSubmit: "Confirm booking request",
+    submitting: "Submitting…",
+    confirmationTitle: "Booking request received",
+    confirmationSubtitle:
+      "Your request is pending Admin review. Payment is not open yet.",
+    confirmationMissing:
+      "We could not find a booking reference for this page. Check My bookings after signing in.",
+    referenceLabel: "Booking reference",
+    statusLabel: "Booking status",
+    viewMyBookings: "My bookings",
+    errors: {
+      dateRequired: "Select a preferred travel date.",
+      dateUnavailable:
+        "Select a travel date that is at least 7 calendar days ahead.",
+      travelersRequired: "Enter the number of travelers.",
+      travelersInvalid: "Enter at least 1 traveler.",
+      nameRequired: "Enter your full name.",
+      nameTooLong: "Full name must be {max} characters or fewer.",
+      emailRequired: "Enter a contact email.",
+      emailInvalid: "Enter a valid contact email.",
+      phoneRequired: "Enter a contact phone number.",
+      phoneTooLong: "Contact phone must be {max} characters or fewer.",
+      requirementsTooLong:
+        "Additional requirements must be {max} characters or fewer.",
+      generic: "Something went wrong. Please try again.",
     },
   },
   customerHome: {

@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-16-2026 20:35
+last_updated: 11-17-2026 13:45
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -67,7 +67,7 @@ development_status:
 
   epic-5: in-progress
   5-1-booking-create-api-with-7-day-rule-asia-dhaka: review
-  5-2-booking-form-review-and-auth-return: backlog
+  5-2-booking-form-review-and-auth-return: review
   5-3-booking-confirmation-history-detail-and-cancel-pending: backlog
   epic-5-retrospective: optional
 
