@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-17-2026 15:48
+last_updated: 11-17-2026 16:57
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -65,14 +65,14 @@ development_status:
   4-2-ai-recommendations-ui: done
   epic-4-retrospective: done
 
-  epic-5: in-progress
-  5-1-booking-create-api-with-7-day-rule-asia-dhaka: review
-  5-2-booking-form-review-and-auth-return: review
-  5-3-booking-confirmation-history-detail-and-cancel-pending: review
-  epic-5-retrospective: optional
+  epic-5: done
+  5-1-booking-create-api-with-7-day-rule-asia-dhaka: done
+  5-2-booking-form-review-and-auth-return: done
+  5-3-booking-confirmation-history-detail-and-cancel-pending: done
+  epic-5-retrospective: done
 
-  epic-6: backlog
-  6-1-admin-bookings-list-filter-and-detail: backlog
+  epic-6: in-progress
+  6-1-admin-bookings-list-filter-and-detail: review
   6-2-approve-booking-and-open-payment-window: backlog
   6-3-reject-booking-with-mandatory-reason: backlog
   6-4-reopen-and-extend-payment-window: backlog
@@ -198,3 +198,37 @@ action_items:
     owner: "quality"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-11-16.md"
+  - id: "epic-5-retro-item-14-add-post-api-bookings-idempotency-or-equ"
+    epic: 5
+    action: "Add POST /api/bookings/ idempotency (or equivalent) before production-scale
+      create traffic"
+    owner: "developer"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-11-17.md"
+  - id: "epic-5-retro-item-15-tighten-create-fe-error-taxonomy-so-401"
+    epic: 5
+    action: "Tighten create FE error taxonomy so 401/403/429 are hard failures, not
+      outcome-unknown"
+    owner: "developer"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-11-17.md"
+  - id: "epic-5-retro-item-16-align-fe-min-bookable-day-with-asia-dhak"
+    epic: 5
+    action: "Align FE min-bookable day with Asia/Dhaka (or document permanent BE-only
+      authority)"
+    owner: "developer"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-11-17.md"
+  - id: "epic-5-retro-item-17-prefer-marking-story-keys-done-at-step-0"
+    epic: 5
+    action: "Prefer marking story keys done at step-05 human acceptance (not only
+      at next-epic close)"
+    owner: "delivery"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-11-17.md"
+  - id: "epic-5-retro-item-18-keep-open-02-do-not-invent-traveler-max"
+    epic: 5
+    action: "Keep OPEN-02: do not invent traveler max until product decides"
+    owner: "product"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-11-17.md"

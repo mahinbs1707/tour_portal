@@ -152,3 +152,13 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-3-booking-confirmation-history-detail-and-cancel-pending.md`
   summary: Paginate or limit customer booking history list when volumes grow
   evidence: MVP returns full own list ordered -created_at/-id; fine for early traffic
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-admin-bookings-list-filter-and-detail.md`
+  summary: Persist Admin bookings list filter/page in URL search params so Back restores triage context
+  evidence: MVP keeps filter/page in component state only; acceptable for first Admin list
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-admin-bookings-list-filter-and-detail.md`
+  summary: Fix BookingResponseSerializer payment status to use prefetched payments without order_by bypass (N+1)
+  evidence: Shared get_payment_status; Admin list is 20/page so impact bounded for now
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-admin-bookings-list-filter-and-detail.md`
+  summary: Add Admin booking search by reference / customer identity when triage volume grows
+  evidence: Story 6.1 AC is status filter + detail only

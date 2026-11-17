@@ -84,3 +84,25 @@ class BookingDetailSerializer(BookingResponseSerializer):
     class Meta(BookingResponseSerializer.Meta):
         fields = [*BookingResponseSerializer.Meta.fields, "package_title"]
         read_only_fields = fields
+
+
+class AdminBookingSerializer(BookingDetailSerializer):
+    """Admin list/detail shape (Story 6.1).
+
+    Adds the booking owner's account identity (`customer_full_name`,
+    `customer_email`) alongside the booking contact fields already on the row.
+    Booking / payment / window statuses remain separate keys.
+    """
+
+    customer_full_name = serializers.CharField(
+        source="customer.full_name", read_only=True
+    )
+    customer_email = serializers.EmailField(source="customer.email", read_only=True)
+
+    class Meta(BookingDetailSerializer.Meta):
+        fields = [
+            *BookingDetailSerializer.Meta.fields,
+            "customer_full_name",
+            "customer_email",
+        ]
+        read_only_fields = fields

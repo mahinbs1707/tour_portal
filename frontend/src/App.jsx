@@ -8,6 +8,8 @@ import { SignInPage } from "./features/auth/SignInPage.jsx";
 import { SignOutPage } from "./features/auth/SignOutPage.jsx";
 import { SignUpPage } from "./features/auth/SignUpPage.jsx";
 import { CustomerHomePage } from "./features/customer/CustomerHomePage.jsx";
+import { AdminBookingDetailPage } from "./features/bookings/AdminBookingDetailPage.jsx";
+import { AdminBookingsPage } from "./features/bookings/AdminBookingsPage.jsx";
 import { BookingConfirmationPage } from "./features/bookings/BookingConfirmationPage.jsx";
 import { BookingDetailPage } from "./features/bookings/BookingDetailPage.jsx";
 import { BookingFormPage } from "./features/bookings/BookingFormPage.jsx";
@@ -92,10 +94,8 @@ export function AppRoutes() {
           path="packages/:packageId"
           element={<AdminPackageFormPage />}
         />
-        <Route
-          path="bookings"
-          element={<PlaceholderPage title={messages.nav.bookings} />}
-        />
+        <Route path="bookings" element={<AdminBookingsPage />} />
+        <Route path="bookings/:id" element={<AdminBookingDetailPage />} />
         <Route
           path="custom-tours"
           element={<PlaceholderPage title={messages.nav.customToursAdmin} />}
