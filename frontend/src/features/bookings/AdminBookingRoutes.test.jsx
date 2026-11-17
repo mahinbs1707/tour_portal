@@ -27,6 +27,7 @@ vi.mock("./adminBookingsApi.js", () => ({
   listAdminBookings: (...args) => listMock(...args),
   getAdminBooking: (...args) => getMock(...args),
   approveAdminBooking: vi.fn(),
+  rejectAdminBooking: vi.fn(),
 }));
 
 vi.mock("./bookingsApi.js", () => ({

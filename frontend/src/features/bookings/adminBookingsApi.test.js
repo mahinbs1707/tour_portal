@@ -10,6 +10,7 @@ import {
   approveAdminBooking,
   getAdminBooking,
   listAdminBookings,
+  rejectAdminBooking,
 } from "./adminBookingsApi.js";
 
 beforeEach(() => {
@@ -42,6 +43,17 @@ describe("adminBookingsApi", () => {
     expect(apiRequestMock).toHaveBeenCalledWith(
       "/api/bookings/admin/abc-123/approve/",
       { method: "POST" },
+    );
+  });
+
+  it("rejects by UUID id with POST and a JSON rejection_reason body", async () => {
+    await rejectAdminBooking("abc-123", "No capacity.");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/admin/abc-123/reject/",
+      {
+        method: "POST",
+        body: JSON.stringify({ rejection_reason: "No capacity." }),
+      },
     );
   });
 

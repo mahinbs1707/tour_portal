@@ -4,8 +4,15 @@ import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { BookingStatusChips } from "./BookingStatusChips.jsx";
 import { ConfirmDialog } from "../packages/ConfirmDialog.jsx";
-import { approveAdminBooking, getAdminBooking } from "./adminBookingsApi.js";
+import {
+  approveAdminBooking,
+  getAdminBooking,
+  rejectAdminBooking,
+} from "./adminBookingsApi.js";
 import { formatSubmittedAt } from "./bookingFormat.js";
+
+/** Matches the backend cap (same as booking additional_requirements). */
+const REJECTION_REASON_MAX_LENGTH = 2000;
 
 function DetailRow({ label, children, testId }) {
   return (
@@ -29,8 +36,10 @@ const sectionClass =
 /**
  * Admin booking detail. Story 6.1: read-only detail. Story 6.2: Approve (only
  * while PENDING) behind a confirm dialog with fixed 24h-window copy; after
- * success the page stays here and shows the refreshed statuses. Reject /
- * reopen / extend / Pay / Cancel arrive in later stories.
+ * success the page stays here and shows the refreshed statuses. Story 6.3:
+ * Reject (only while PENDING) in an alertdialog with a required reason; after
+ * success the page stays here, shows the persisted reason, and the decision
+ * controls disappear. Reopen / extend / Pay / Cancel arrive in later stories.
  */
 export function AdminBookingDetailPage() {
   const { id } = useParams();
@@ -42,8 +51,16 @@ export function AdminBookingDetailPage() {
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState("");
   const [approveSuccess, setApproveSuccess] = useState("");
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectFieldError, setRejectFieldError] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectError, setRejectError] = useState("");
+  const [rejectSuccess, setRejectSuccess] = useState("");
   const generationRef = useRef(0);
   const approvingRef = useRef(false);
+  const rejectingRef = useRef(false);
+  const reasonInputRef = useRef(null);
 
   const load = useCallback(async () => {
     const generation = ++generationRef.current;
@@ -79,6 +96,11 @@ export function AdminBookingDetailPage() {
     setConfirmOpen(false);
     setApproveError("");
     setApproveSuccess("");
+    setRejectOpen(false);
+    setRejectReason("");
+    setRejectFieldError("");
+    setRejectError("");
+    setRejectSuccess("");
     load();
     return () => {
       generationRef.current += 1;
@@ -86,6 +108,87 @@ export function AdminBookingDetailPage() {
   }, [load]);
 
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
+  const closeReject = useCallback(() => {
+    setRejectOpen(false);
+    setRejectFieldError("");
+  }, []);
+
+  function openReject() {
+    setApproveError("");
+    setApproveSuccess("");
+    setRejectError("");
+    setRejectSuccess("");
+    setRejectReason("");
+    setRejectFieldError("");
+    setRejectOpen(true);
+  }
+
+  async function handleRejectConfirm() {
+    if (rejectingRef.current || !booking) {
+      return;
+    }
+    const errors = messages.adminBookings.errors;
+    const reason = rejectReason.trim();
+    // Blocked client-side: nothing is sent for a blank or too-long reason.
+    if (!reason) {
+      setRejectFieldError(errors.rejectReasonRequired);
+      reasonInputRef.current?.focus();
+      return;
+    }
+    if (reason.length > REJECTION_REASON_MAX_LENGTH) {
+      setRejectFieldError(
+        errors.rejectReasonTooLong.replace("{max}", String(REJECTION_REASON_MAX_LENGTH)),
+      );
+      reasonInputRef.current?.focus();
+      return;
+    }
+    const generation = generationRef.current;
+    rejectingRef.current = true;
+    setRejecting(true);
+    setRejectFieldError("");
+    setRejectError("");
+    setRejectSuccess("");
+    try {
+      const updated = await rejectAdminBooking(booking.id, reason);
+      if (generation !== generationRef.current) {
+        return;
+      }
+      // 1A: stay on detail; live status + persisted reason; controls disappear.
+      setBooking(updated);
+      setRejectSuccess(
+        messages.adminBookings.rejectSuccess.replace("{reference}", updated.reference),
+      );
+      setRejectOpen(false);
+      setRejectReason("");
+    } catch (err) {
+      if (generation !== generationRef.current) {
+        return;
+      }
+      if (err instanceof ApiError && err.status === 400 && err.fieldErrors.rejection_reason) {
+        // Server-side reason validation: keep the dialog open on the field.
+        setRejectFieldError(err.fieldErrors.rejection_reason[0]);
+        return;
+      }
+      setRejectOpen(false);
+      if (err instanceof ApiError && err.status === 409) {
+        setRejectError(errors.rejectNotPending);
+        // Booking changed underneath us — refresh live status (Reject disappears).
+        load();
+      } else if (err instanceof ApiError && err.status === 404) {
+        setBooking(null);
+        setNotFound(true);
+      } else if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setRejectError(errors.rejectGeneric);
+      } else {
+        // Network/timeout/5xx: the rejection may or may not have been applied.
+        setRejectError(errors.rejectOutcomeUnknown);
+        load();
+      }
+    } finally {
+      rejectingRef.current = false;
+      setRejecting(false);
+    }
+  }
 
   async function handleApproveConfirm() {
     if (approvingRef.current || !booking) {
@@ -96,6 +199,8 @@ export function AdminBookingDetailPage() {
     setApproving(true);
     setApproveError("");
     setApproveSuccess("");
+    setRejectError("");
+    setRejectSuccess("");
     try {
       const updated = await approveAdminBooking(booking.id);
       if (generation !== generationRef.current) {
@@ -226,6 +331,26 @@ export function AdminBookingDetailPage() {
         </p>
       ) : null}
 
+      {rejectSuccess ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-body-sm"
+          role="status"
+          data-testid="admin-booking-reject-success"
+        >
+          {rejectSuccess}
+        </p>
+      ) : null}
+
+      {rejectError ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-3 py-2 text-body-sm text-[var(--color-destructive)]"
+          role="alert"
+          data-testid="admin-booking-reject-error"
+        >
+          {rejectError}
+        </p>
+      ) : null}
+
       {!loading && booking ? (
         <>
           <p
@@ -273,6 +398,16 @@ export function AdminBookingDetailPage() {
             >
               {orPlaceholder(booking.additional_requirements)}
             </DetailRow>
+            {booking.status === "REJECTED" ? (
+              <DetailRow
+                label={messages.adminBookings.rejectionReasonLabel}
+                testId="admin-booking-detail-rejection-reason"
+              >
+                <span className="whitespace-pre-wrap break-words">
+                  {orPlaceholder(booking.rejection_reason)}
+                </span>
+              </DetailRow>
+            ) : null}
           </dl>
 
           <h2 className="text-headline mt-8 mb-0">
@@ -324,21 +459,34 @@ export function AdminBookingDetailPage() {
           </dl>
 
           {canApprove ? (
-            <div className="mt-8">
+            <div className="mt-8 flex flex-wrap gap-3">
               <button
                 type="button"
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
                 onClick={() => {
                   setApproveError("");
                   setApproveSuccess("");
+                  setRejectError("");
+                  setRejectSuccess("");
                   setConfirmOpen(true);
                 }}
-                disabled={approving}
+                disabled={approving || rejecting}
                 data-testid="admin-booking-approve-button"
               >
                 {approving
                   ? messages.adminBookings.approving
                   : messages.adminBookings.approveBooking}
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-4 font-semibold text-[var(--color-destructive)] disabled:opacity-50"
+                onClick={openReject}
+                disabled={approving || rejecting}
+                data-testid="admin-booking-reject-button"
+              >
+                {rejecting
+                  ? messages.adminBookings.rejecting
+                  : messages.adminBookings.rejectBooking}
               </button>
             </div>
           ) : null}
@@ -357,6 +505,72 @@ export function AdminBookingDetailPage() {
         onConfirm={handleApproveConfirm}
         onCancel={closeConfirm}
       />
+
+      <ConfirmDialog
+        open={rejectOpen && canApprove}
+        role="alertdialog"
+        title={messages.adminBookings.rejectDialogTitle}
+        body={messages.adminBookings.rejectDialogBody.replace(
+          "{reference}",
+          booking?.reference || "",
+        )}
+        confirmLabel={messages.adminBookings.rejectDialogConfirm}
+        cancelLabel={messages.adminBookings.rejectDialogKeep}
+        onConfirm={handleRejectConfirm}
+        onCancel={closeReject}
+        initialFocusRef={reasonInputRef}
+      >
+        <div className="mt-4">
+          <label
+            htmlFor="admin-booking-reject-reason"
+            className="text-label text-[var(--color-muted-foreground)]"
+          >
+            {messages.adminBookings.rejectReasonLabel}
+          </label>
+          <textarea
+            id="admin-booking-reject-reason"
+            ref={reasonInputRef}
+            className="mt-1 block min-h-24 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-[var(--color-foreground)]"
+            value={rejectReason}
+            maxLength={REJECTION_REASON_MAX_LENGTH}
+            required
+            aria-required="true"
+            aria-invalid={rejectFieldError ? "true" : "false"}
+            aria-describedby={
+              rejectFieldError
+                ? "admin-booking-reject-reason-hint admin-booking-reject-reason-error"
+                : "admin-booking-reject-reason-hint"
+            }
+            disabled={rejecting}
+            onChange={(event) => {
+              setRejectReason(event.target.value);
+              if (rejectFieldError) {
+                setRejectFieldError("");
+              }
+            }}
+            data-testid="admin-booking-reject-reason"
+          />
+          <p
+            id="admin-booking-reject-reason-hint"
+            className="mt-1 mb-0 text-body-sm text-[var(--color-muted-foreground)]"
+          >
+            {messages.adminBookings.rejectReasonHint.replace(
+              "{max}",
+              String(REJECTION_REASON_MAX_LENGTH),
+            )}
+          </p>
+          {rejectFieldError ? (
+            <p
+              id="admin-booking-reject-reason-error"
+              className="mt-1 mb-0 text-body-sm text-[var(--color-destructive)]"
+              role="alert"
+              data-testid="admin-booking-reject-reason-error"
+            >
+              {rejectFieldError}
+            </p>
+          ) : null}
+        </div>
+      </ConfirmDialog>
     </section>
   );
 }

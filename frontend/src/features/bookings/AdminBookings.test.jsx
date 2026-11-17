@@ -15,6 +15,7 @@ vi.mock("./adminBookingsApi.js", () => ({
   listAdminBookings: (...args) => listMock(...args),
   getAdminBooking: (...args) => getMock(...args),
   approveAdminBooking: (...args) => approveMock(...args),
+  rejectAdminBooking: vi.fn(),
 }));
 
 import { AdminBookingDetailPage } from "./AdminBookingDetailPage.jsx";
@@ -373,16 +374,18 @@ describe("AdminBookingDetailPage", () => {
     );
   });
 
-  it("offers only Approve on a PENDING booking (no reject / window / Pay / Cancel)", async () => {
+  it("offers only Approve and Reject on a PENDING booking (no window / Pay / Cancel)", async () => {
     getMock.mockResolvedValue(PENDING);
     renderRoutes("/app/admin/bookings/b-1");
     await screen.findByTestId("admin-booking-detail-reference");
     const buttons = screen.getAllByRole("button");
-    expect(buttons).toHaveLength(1);
+    expect(buttons).toHaveLength(2);
     expect(buttons[0]).toHaveAttribute("data-testid", "admin-booking-approve-button");
     expect(buttons[0]).toHaveTextContent(messages.adminBookings.approveBooking);
+    expect(buttons[1]).toHaveAttribute("data-testid", "admin-booking-reject-button");
+    expect(buttons[1]).toHaveTextContent(messages.adminBookings.rejectBooking);
     expect(screen.queryByTestId("booking-cancel-button")).toBeNull();
-    expect(screen.queryByText(/pay now|reject|reopen|extend/i)).toBeNull();
+    expect(screen.queryByText(/pay now|reopen|extend/i)).toBeNull();
   });
 
   it.each(["APPROVED", "REJECTED", "CANCELLED"])(

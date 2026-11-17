@@ -28,10 +28,18 @@ BOOKING_SUBMITTED_EVENT = "booking.submitted"
 BOOKING_CANCELLED_EVENT = "booking.cancelled"
 BOOKING_APPROVED_EVENT = "booking.approved"
 BOOKING_APPROVE_AUDIT_ACTION = "booking.approve"
+BOOKING_REJECTED_EVENT = "booking.rejected"
+BOOKING_REJECT_AUDIT_ACTION = "booking.reject"
+# Same cap as ``additional_requirements`` (Story 6.3, decision 2A).
+REJECTION_REASON_MAX_LENGTH = 2000
 
 
 class BookingNotCancellable(Exception):
     """Raised when a Customer tries to cancel a booking that is not PENDING."""
+
+
+class BookingNotRejectable(Exception):
+    """Raised when an Admin tries to reject a booking that is not PENDING."""
 
 
 class BookingNotApprovable(Exception):
@@ -201,6 +209,81 @@ class BookingService:
             if notification is None:
                 raise RuntimeError("booking.approved notification was not created.")
             return booking
+
+    def reject(self, *, admin, booking_id, reason: str) -> Booking:
+        """Reject a PENDING booking with a mandatory reason (Story 6.3).
+
+        One atomic block: booking → ``REJECTED`` + trimmed ``rejection_reason``,
+        ``booking.reject`` audit, ``booking.rejected`` notification (reason in
+        payload). The existing ``NOT_OPEN`` payment window is left untouched —
+        never opened, never written from here (AD-16). Any failure rolls back.
+
+        Raises Django ``ValidationError`` (blank / too-long reason),
+        ``Booking.DoesNotExist`` (unknown id) or ``BookingNotRejectable``
+        (not PENDING).
+        """
+        reason = self._clean_rejection_reason(reason)
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking_id)
+            if booking.status != BookingStatus.PENDING:
+                raise BookingNotRejectable("Only pending bookings can be rejected.")
+
+            before = self._reject_snapshot(booking)
+            booking.status = BookingStatus.REJECTED
+            booking.rejection_reason = reason
+            booking.save(update_fields=["status", "rejection_reason", "updated_at"])
+
+            self.audit.record(
+                actor_id=admin.id,
+                action=BOOKING_REJECT_AUDIT_ACTION,
+                target_type=BOOKING_ENTITY_TYPE,
+                target_id=str(booking.id),
+                before=before,
+                after=self._reject_snapshot(booking),
+            )
+            notification = self.notifications.create(
+                recipient_id=booking.customer_id,
+                event_key=BOOKING_REJECTED_EVENT,
+                entity_type=BOOKING_ENTITY_TYPE,
+                entity_id=booking.id,
+                payload={
+                    "reference": booking.reference,
+                    "booking_id": str(booking.id),
+                    "status": booking.status,
+                    "rejection_reason": reason,
+                },
+            )
+            if notification is None:
+                raise RuntimeError("booking.rejected notification was not created.")
+            return booking
+
+    @staticmethod
+    def _clean_rejection_reason(reason: str | None) -> str:
+        cleaned = (reason or "").strip()
+        if not cleaned:
+            raise ValidationError(
+                {"rejection_reason": ["Enter a reason for rejecting this booking."]}
+            )
+        if len(cleaned) > REJECTION_REASON_MAX_LENGTH:
+            raise ValidationError(
+                {
+                    "rejection_reason": [
+                        "Reason must be "
+                        f"{REJECTION_REASON_MAX_LENGTH} characters or fewer."
+                    ]
+                }
+            )
+        return cleaned
+
+    @staticmethod
+    def _reject_snapshot(booking: Booking) -> dict[str, Any]:
+        """Audit snapshot for reject: status, reason and (unchanged) window state."""
+        window = getattr(booking, "payment_window", None)
+        return {
+            "status": booking.status,
+            "rejection_reason": booking.rejection_reason,
+            "payment_window_status": window.status if window else None,
+        }
 
     @staticmethod
     def _decision_snapshot(booking: Booking, *, window=None) -> dict[str, Any]:

@@ -12,6 +12,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   role = "dialog",
+  children = null,
+  initialFocusRef = null,
 }) {
   const titleId = useId();
   const bodyId = useId();
@@ -24,7 +26,7 @@ export function ConfirmDialog({
       return undefined;
     }
     previouslyFocused.current = document.activeElement;
-    confirmRef.current?.focus();
+    (initialFocusRef?.current || confirmRef.current)?.focus();
 
     function focusables() {
       const root = dialogRef.current;
@@ -80,7 +82,8 @@ export function ConfirmDialog({
         previouslyFocused.current.focus();
       }
     };
-  }, [open, onCancel]);
+    // initialFocusRef is a stable ref object; only its `.current` is read on open.
+  }, [open, onCancel, initialFocusRef]);
 
   if (!open) {
     return null;
@@ -110,6 +113,7 @@ export function ConfirmDialog({
         <p id={bodyId} className="mt-2 text-body-sm text-[var(--color-muted-foreground)]">
           {body}
         </p>
+        {children}
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <button
             type="button"

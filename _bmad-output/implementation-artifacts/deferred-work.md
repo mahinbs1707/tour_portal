@@ -169,3 +169,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-6-2-approve-booking-and-open-payment-window.md`
   summary: Expose payment_window deadline_at on Admin (and later Customer) booking detail when Pay UX needs it
   evidence: Deadline is stored and audited; Admin serializer still shows status chips only
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-3-reject-booking-with-mandatory-reason.md`
+  summary: Prevent Esc from dismissing Admin reject/approve dialog while the mutation request is in flight
+  evidence: Matches current Approve dialog behavior; result still applies after close

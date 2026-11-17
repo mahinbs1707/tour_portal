@@ -163,6 +163,34 @@ describe("BookingDetailPage", () => {
     },
   );
 
+  it("shows the rejection reason on a REJECTED booking, with no Cancel or Pay", async () => {
+    getMock.mockResolvedValue({
+      ...PENDING,
+      status: "REJECTED",
+      rejection_reason: "No capacity on that date.",
+    });
+    renderRoutes("/app/customer/bookings/b-1");
+    expect(await screen.findByTestId("booking-detail-rejection-reason")).toHaveTextContent(
+      "No capacity on that date.",
+    );
+    expect(screen.getByTestId("booking-detail-booking-status")).toHaveTextContent(
+      messages.booking.bookingStatus.REJECTED,
+    );
+    expect(screen.queryByTestId("booking-cancel-button")).not.toBeInTheDocument();
+    expect(screen.queryByText(/pay now/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it.each(["PENDING", "APPROVED", "CANCELLED"])(
+    "does not show a rejection reason row when the booking is %s",
+    async (status) => {
+      getMock.mockResolvedValue({ ...PENDING, status, rejection_reason: "" });
+      renderRoutes("/app/customer/bookings/b-1");
+      await screen.findByTestId("booking-detail-reference");
+      expect(screen.queryByTestId("booking-detail-rejection-reason")).toBeNull();
+    },
+  );
+
   it("shows not-found for another customer's / missing booking (404)", async () => {
     getMock.mockRejectedValue(apiError(404, "Not found."));
     renderRoutes("/app/customer/bookings/other");

@@ -34,6 +34,14 @@ class BookingCreateSerializer(serializers.Serializer):
         return value
 
 
+class AdminBookingRejectSerializer(serializers.Serializer):
+    """Reject request body (Story 6.3): required, trimmed, max 2000 chars."""
+
+    rejection_reason = serializers.CharField(
+        max_length=2000, allow_blank=False, trim_whitespace=True
+    )
+
+
 class BookingResponseSerializer(serializers.ModelSerializer):
     package_id = serializers.UUIDField(source="package.id", read_only=True)
     available_date_id = serializers.UUIDField(source="available_date.id", read_only=True)
@@ -82,7 +90,11 @@ class BookingDetailSerializer(BookingResponseSerializer):
     package_title = serializers.CharField(source="package.title", read_only=True)
 
     class Meta(BookingResponseSerializer.Meta):
-        fields = [*BookingResponseSerializer.Meta.fields, "package_title"]
+        fields = [
+            *BookingResponseSerializer.Meta.fields,
+            "package_title",
+            "rejection_reason",
+        ]
         read_only_fields = fields
 
 

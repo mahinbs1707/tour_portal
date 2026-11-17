@@ -1,8 +1,9 @@
 """Admin booking API — Admin role only.
 
-Story 6.1: list + detail (read-only). Story 6.2: approve. Reject and
-payment-window reopen/extend land in Stories 6.3–6.4. This module never writes
-``PaymentWindow`` rows; approve delegates to ``BookingService`` → ``PaymentService``.
+Story 6.1: list + detail (read-only). Story 6.2: approve. Story 6.3: reject
+(with a mandatory reason). Payment-window reopen/extend land in Story 6.4. This
+module never writes ``PaymentWindow`` rows; approve delegates to
+``BookingService`` → ``PaymentService`` and reject leaves the window untouched.
 """
 
 from __future__ import annotations
@@ -17,8 +18,12 @@ from rest_framework.views import APIView
 
 from accounts.authentication import CsrfSessionAuthentication
 from bookings.models import Booking, BookingStatus
-from bookings.serializers import AdminBookingSerializer
-from bookings.services import BookingNotApprovable, BookingService
+from bookings.serializers import AdminBookingRejectSerializer, AdminBookingSerializer
+from bookings.services import (
+    BookingNotApprovable,
+    BookingNotRejectable,
+    BookingService,
+)
 from common.permissions import IsAdminRole
 
 # Same page size as the Admin packages list (AD-11).
@@ -94,6 +99,36 @@ class AdminBookingApproveView(APIView):
         except Booking.DoesNotExist:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         except BookingNotApprovable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        except DjangoValidationError as exc:
+            return Response(exc.message_dict, status=status.HTTP_400_BAD_REQUEST)
+        booking = get_object_or_404(_all_bookings(), pk=booking.pk)
+        return Response(AdminBookingSerializer(booking).data)
+
+
+class AdminBookingRejectView(APIView):
+    """POST /api/bookings/admin/<uuid>/reject/ — reject a PENDING booking.
+
+    Body ``{"rejection_reason": "..."}`` (required, trimmed, max 2000). 400
+    blank/too-long/missing reason; 404 unknown id; 409 not PENDING. The payment
+    window is never touched. Returns the Admin detail shape.
+    """
+
+    permission_classes = [IsAdminRole]
+    authentication_classes = [CsrfSessionAuthentication]
+
+    def post(self, request, booking_id):
+        serializer = AdminBookingRejectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            booking = BookingService().reject(
+                admin=request.user,
+                booking_id=booking_id,
+                reason=serializer.validated_data["rejection_reason"],
+            )
+        except Booking.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        except BookingNotRejectable as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         except DjangoValidationError as exc:
             return Response(exc.message_dict, status=status.HTTP_400_BAD_REQUEST)

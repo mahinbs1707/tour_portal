@@ -28,6 +28,21 @@ export function approveAdminBooking(bookingId) {
   );
 }
 
+/**
+ * POST /api/bookings/admin/<uuid>/reject/ — reject a PENDING booking with a
+ * mandatory reason (Story 6.3). Body `{ rejection_reason }`; resolves to the
+ * Admin booking detail.
+ */
+export function rejectAdminBooking(bookingId, rejectionReason) {
+  return apiRequest(
+    `/api/bookings/admin/${encodeURIComponent(bookingId)}/reject/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ rejection_reason: rejectionReason }),
+    },
+  );
+}
+
 /** GET /api/bookings/admin/<uuid>/ — Admin booking detail. */
 export function getAdminBooking(bookingId) {
   return apiRequest(

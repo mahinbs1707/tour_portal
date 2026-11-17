@@ -251,6 +251,16 @@ export function BookingDetailPage() {
                 {booking.additional_requirements}
               </DetailRow>
             ) : null}
+            {booking.status === "REJECTED" ? (
+              <DetailRow
+                label={messages.booking.rejectionReasonLabel}
+                testId="booking-detail-rejection-reason"
+              >
+                <span className="whitespace-pre-wrap break-words">
+                  {booking.rejection_reason || messages.booking.statusNotAvailable}
+                </span>
+              </DetailRow>
+            ) : null}
           </dl>
 
           {canCancel ? (

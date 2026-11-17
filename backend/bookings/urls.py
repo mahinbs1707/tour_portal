@@ -4,6 +4,7 @@ from bookings.admin_views import (
     AdminBookingApproveView,
     AdminBookingDetailView,
     AdminBookingListView,
+    AdminBookingRejectView,
 )
 from bookings.views import (
     BookingCancelView,
@@ -23,6 +24,11 @@ urlpatterns = [
         "admin/<uuid:booking_id>/approve/",
         AdminBookingApproveView.as_view(),
         name="admin-booking-approve",
+    ),
+    path(
+        "admin/<uuid:booking_id>/reject/",
+        AdminBookingRejectView.as_view(),
+        name="admin-booking-reject",
     ),
     path("<uuid:booking_id>/", BookingDetailView.as_view(), name="booking-detail"),
     path(
