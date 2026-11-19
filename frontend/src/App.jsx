@@ -12,6 +12,7 @@ import { AdminBookingDetailPage } from "./features/bookings/AdminBookingDetailPa
 import { AdminBookingsPage } from "./features/bookings/AdminBookingsPage.jsx";
 import { BookingConfirmationPage } from "./features/bookings/BookingConfirmationPage.jsx";
 import { BookingDetailPage } from "./features/bookings/BookingDetailPage.jsx";
+import { MockCheckoutPage } from "./features/bookings/MockCheckoutPage.jsx";
 import { BookingFormPage } from "./features/bookings/BookingFormPage.jsx";
 import { MyBookingsPage } from "./features/bookings/MyBookingsPage.jsx";
 import { AdminPackageFormPage } from "./features/packages/AdminPackageFormPage.jsx";
@@ -20,6 +21,14 @@ import { ExplorePage } from "./features/packages/ExplorePage.jsx";
 import { PackageDetailPage } from "./features/packages/PackageDetailPage.jsx";
 import { LandingPage } from "./features/public/LandingPage.jsx";
 import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
+import { CustomTourConfirmationPage } from "./features/customTours/CustomTourConfirmationPage.jsx";
+import { CustomTourDetailPage } from "./features/customTours/CustomTourDetailPage.jsx";
+import { CustomTourFormPage } from "./features/customTours/CustomTourFormPage.jsx";
+import { CustomTourReapplyPage } from "./features/customTours/CustomTourReapplyPage.jsx";
+import { AdminCustomTourDetailPage } from "./features/customTours/AdminCustomTourDetailPage.jsx";
+import { AdminCustomToursPage } from "./features/customTours/AdminCustomToursPage.jsx";
+import { MyCustomToursPage } from "./features/customTours/MyCustomToursPage.jsx";
+import { NotificationsPage } from "./features/notifications/NotificationsPage.jsx";
 import { AiRecommendationsPage } from "./features/recommendations/AiRecommendationsPage.jsx";
 import { messages } from "./i18n/messages.js";
 import { AdminLayout } from "./layouts/AdminLayout.jsx";
@@ -67,14 +76,19 @@ export function AppRoutes() {
         <Route index element={<CustomerHomePage />} />
         <Route path="bookings" element={<MyBookingsPage />} />
         <Route path="bookings/:id" element={<BookingDetailPage />} />
+        <Route path="bookings/:id/pay" element={<MockCheckoutPage />} />
+        <Route path="custom-tours" element={<MyCustomToursPage />} />
+        <Route path="custom-tours/new" element={<CustomTourFormPage />} />
         <Route
-          path="custom-tours"
-          element={<PlaceholderPage title={messages.nav.customTours} />}
+          path="custom-tours/confirmation"
+          element={<CustomTourConfirmationPage />}
         />
         <Route
-          path="notifications"
-          element={<PlaceholderPage title={messages.nav.notifications} />}
+          path="custom-tours/:id/reapply"
+          element={<CustomTourReapplyPage />}
         />
+        <Route path="custom-tours/:id" element={<CustomTourDetailPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
 
       <Route
@@ -96,9 +110,10 @@ export function AppRoutes() {
         />
         <Route path="bookings" element={<AdminBookingsPage />} />
         <Route path="bookings/:id" element={<AdminBookingDetailPage />} />
+        <Route path="custom-tours" element={<AdminCustomToursPage />} />
         <Route
-          path="custom-tours"
-          element={<PlaceholderPage title={messages.nav.customToursAdmin} />}
+          path="custom-tours/:id"
+          element={<AdminCustomTourDetailPage />}
         />
       </Route>
 

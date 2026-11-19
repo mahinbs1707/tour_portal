@@ -1,9 +1,8 @@
 """Admin booking API — Admin role only.
 
 Story 6.1: list + detail (read-only). Story 6.2: approve. Story 6.3: reject
-(with a mandatory reason). Payment-window reopen/extend land in Story 6.4. This
-module never writes ``PaymentWindow`` rows; approve delegates to
-``BookingService`` → ``PaymentService`` and reject leaves the window untouched.
+(with a mandatory reason). Story 6.4: reopen + extend via ``BookingService`` →
+``PaymentService``. This module never writes ``PaymentWindow`` rows directly.
 """
 
 from __future__ import annotations
@@ -18,10 +17,16 @@ from rest_framework.views import APIView
 
 from accounts.authentication import CsrfSessionAuthentication
 from bookings.models import Booking, BookingStatus
-from bookings.serializers import AdminBookingRejectSerializer, AdminBookingSerializer
+from bookings.serializers import (
+    AdminBookingExtendSerializer,
+    AdminBookingRejectSerializer,
+    AdminBookingSerializer,
+)
 from bookings.services import (
     BookingNotApprovable,
     BookingNotRejectable,
+    BookingPaymentWindowNotExtendable,
+    BookingPaymentWindowNotReopenable,
     BookingService,
 )
 from common.permissions import IsAdminRole
@@ -129,6 +134,52 @@ class AdminBookingRejectView(APIView):
         except Booking.DoesNotExist:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         except BookingNotRejectable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        except DjangoValidationError as exc:
+            return Response(exc.message_dict, status=status.HTTP_400_BAD_REQUEST)
+        booking = get_object_or_404(_all_bookings(), pk=booking.pk)
+        return Response(AdminBookingSerializer(booking).data)
+
+
+class AdminBookingReopenView(APIView):
+    """POST /api/bookings/admin/<uuid>/reopen/ — reopen an EXPIRED payment window."""
+
+    permission_classes = [IsAdminRole]
+    authentication_classes = [CsrfSessionAuthentication]
+
+    def post(self, request, booking_id):
+        try:
+            booking = BookingService().reopen_payment_window(
+                admin=request.user, booking_id=booking_id
+            )
+        except Booking.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        except BookingPaymentWindowNotReopenable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        except DjangoValidationError as exc:
+            return Response(exc.message_dict, status=status.HTTP_400_BAD_REQUEST)
+        booking = get_object_or_404(_all_bookings(), pk=booking.pk)
+        return Response(AdminBookingSerializer(booking).data)
+
+
+class AdminBookingExtendView(APIView):
+    """POST /api/bookings/admin/<uuid>/extend/ — set a future payment deadline."""
+
+    permission_classes = [IsAdminRole]
+    authentication_classes = [CsrfSessionAuthentication]
+
+    def post(self, request, booking_id):
+        serializer = AdminBookingExtendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            booking = BookingService().extend_payment_window(
+                admin=request.user,
+                booking_id=booking_id,
+                deadline_at=serializer.validated_data["deadline_at"],
+            )
+        except Booking.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        except BookingPaymentWindowNotExtendable as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         except DjangoValidationError as exc:
             return Response(exc.message_dict, status=status.HTTP_400_BAD_REQUEST)

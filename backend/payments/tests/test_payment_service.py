@@ -16,9 +16,11 @@ from packages.models import AvailableDate, PackageStatus, TourPackage
 from packages.validators import min_bookable_date, today_in_business_tz
 from payments.models import Payment, PaymentStatus, PaymentWindow, PaymentWindowStatus
 from payments.services import (
+    PaymentDeadlineNotFuture,
     PaymentService,
     PaymentWindowMissing,
     PaymentWindowNotOpenable,
+    PaymentWindowNotReopenable,
 )
 
 User = get_user_model()
@@ -124,3 +126,58 @@ class PaymentServiceTests(TestCase):
         after = PaymentWindow.objects.get(booking=self.booking)
         self.assertEqual(after.deadline_at, before.deadline_at)
         self.assertEqual(PaymentWindow.objects.filter(booking=self.booking).count(), 1)
+
+    def test_mark_expired_when_open_and_past_deadline(self):
+        PaymentService().create_not_open_for_booking(self.booking)
+        opened_at = timezone.now() - timedelta(hours=30)
+        PaymentService().open_window_for_booking(self.booking, opened_at=opened_at)
+        self.booking.status = BookingStatus.APPROVED
+        self.booking.save(update_fields=["status"])
+
+        now = timezone.now()
+        result = PaymentService().mark_expired_if_past_deadline(self.booking, now=now)
+        self.assertIsNotNone(result)
+        window = PaymentWindow.objects.get(booking=self.booking)
+        self.assertEqual(window.status, PaymentWindowStatus.EXPIRED)
+        self.assertIsNotNone(window.expired_at)
+
+    def test_reopen_from_expired_preserves_deadline(self):
+        PaymentService().create_not_open_for_booking(self.booking)
+        self.booking.status = BookingStatus.APPROVED
+        self.booking.save(update_fields=["status"])
+        opened_at = timezone.now() - timedelta(hours=30)
+        window = PaymentService().open_window_for_booking(
+            self.booking, opened_at=opened_at
+        )
+        deadline = window.deadline_at
+        PaymentService().mark_expired_if_past_deadline(
+            self.booking, now=deadline + timedelta(hours=1)
+        )
+
+        reopened = PaymentService().reopen_window_for_booking(self.booking)
+        self.assertEqual(reopened.status, PaymentWindowStatus.OPEN)
+        self.assertEqual(reopened.deadline_at, deadline)
+
+    def test_reopen_refuses_non_expired(self):
+        PaymentService().create_not_open_for_booking(self.booking)
+        PaymentService().open_window_for_booking(self.booking, opened_at=timezone.now())
+        with self.assertRaises(PaymentWindowNotReopenable):
+            PaymentService().reopen_window_for_booking(self.booking)
+
+    def test_extend_sets_open_and_future_deadline(self):
+        PaymentService().create_not_open_for_booking(self.booking)
+        PaymentService().open_window_for_booking(self.booking, opened_at=timezone.now())
+        new_deadline = timezone.now() + timedelta(days=1)
+        window = PaymentService().extend_window_deadline(
+            self.booking, deadline_at=new_deadline
+        )
+        self.assertEqual(window.status, PaymentWindowStatus.OPEN)
+        self.assertEqual(window.deadline_at, new_deadline)
+        self.assertIsNone(window.expired_at)
+
+    def test_extend_rejects_past_deadline(self):
+        PaymentService().create_not_open_for_booking(self.booking)
+        PaymentService().open_window_for_booking(self.booking, opened_at=timezone.now())
+        past = timezone.now() - timedelta(minutes=5)
+        with self.assertRaises(PaymentDeadlineNotFuture):
+            PaymentService().extend_window_deadline(self.booking, deadline_at=past)

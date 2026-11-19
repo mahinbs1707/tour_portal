@@ -14,9 +14,12 @@ from notifications.services import NotificationService
 from packages.models import AvailableDate, PackageStatus, TourPackage
 from packages.validators import assert_bookable_date
 from payments.services import (
+    PaymentDeadlineNotFuture,
     PaymentService,
     PaymentWindowMissing,
+    PaymentWindowNotExtendable,
     PaymentWindowNotOpenable,
+    PaymentWindowNotReopenable,
 )
 
 from bookings.models import Booking, BookingStatus
@@ -30,6 +33,9 @@ BOOKING_APPROVED_EVENT = "booking.approved"
 BOOKING_APPROVE_AUDIT_ACTION = "booking.approve"
 BOOKING_REJECTED_EVENT = "booking.rejected"
 BOOKING_REJECT_AUDIT_ACTION = "booking.reject"
+PAYMENT_WINDOW_ENTITY_TYPE = "payment_window"
+PAYMENT_WINDOW_REOPEN_AUDIT_ACTION = "payment_window.reopen"
+PAYMENT_WINDOW_EXTEND_AUDIT_ACTION = "payment_window.extend"
 # Same cap as ``additional_requirements`` (Story 6.3, decision 2A).
 REJECTION_REASON_MAX_LENGTH = 2000
 
@@ -44,6 +50,14 @@ class BookingNotRejectable(Exception):
 
 class BookingNotApprovable(Exception):
     """Raised when an Admin tries to approve a booking that cannot be approved."""
+
+
+class BookingPaymentWindowNotReopenable(Exception):
+    """Raised when Admin reopen is not allowed for this booking."""
+
+
+class BookingPaymentWindowNotExtendable(Exception):
+    """Raised when Admin extend is not allowed for this booking."""
 
 
 def reference_from_uuid(value: uuid.UUID) -> str:
@@ -256,6 +270,79 @@ class BookingService:
             if notification is None:
                 raise RuntimeError("booking.rejected notification was not created.")
             return booking
+
+    def reopen_payment_window(self, *, admin, booking_id) -> Booking:
+        """Reopen an ``EXPIRED`` window without changing ``deadline_at`` (Story 6.4)."""
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking_id)
+            if booking.status != BookingStatus.APPROVED:
+                raise BookingPaymentWindowNotReopenable(
+                    "Only approved bookings can have their payment window reopened."
+                )
+            window = getattr(booking, "payment_window", None)
+            before = self._window_snapshot(window)
+            try:
+                window = self.payments.reopen_window_for_booking(booking)
+            except PaymentWindowMissing as exc:
+                raise ValidationError({"detail": [str(exc)]}) from exc
+            except PaymentWindowNotReopenable as exc:
+                raise BookingPaymentWindowNotReopenable(str(exc)) from exc
+
+            self.audit.record(
+                actor_id=admin.id,
+                action=PAYMENT_WINDOW_REOPEN_AUDIT_ACTION,
+                target_type=PAYMENT_WINDOW_ENTITY_TYPE,
+                target_id=str(window.id),
+                before=before,
+                after=self._window_snapshot(window),
+            )
+            return booking
+
+    def extend_payment_window(
+        self, *, admin, booking_id, deadline_at
+    ) -> Booking:
+        """Extend ``deadline_at`` to a future instant (Story 6.4)."""
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking_id)
+            if booking.status != BookingStatus.APPROVED:
+                raise BookingPaymentWindowNotExtendable(
+                    "Only approved bookings can have their payment window extended."
+                )
+            window = getattr(booking, "payment_window", None)
+            before = self._window_snapshot(window)
+            try:
+                window = self.payments.extend_window_deadline(
+                    booking, deadline_at=deadline_at
+                )
+            except PaymentWindowMissing as exc:
+                raise ValidationError({"detail": [str(exc)]}) from exc
+            except PaymentWindowNotExtendable as exc:
+                raise BookingPaymentWindowNotExtendable(str(exc)) from exc
+            except PaymentDeadlineNotFuture as exc:
+                raise ValidationError({"deadline_at": [str(exc)]}) from exc
+
+            self.audit.record(
+                actor_id=admin.id,
+                action=PAYMENT_WINDOW_EXTEND_AUDIT_ACTION,
+                target_type=PAYMENT_WINDOW_ENTITY_TYPE,
+                target_id=str(window.id),
+                before=before,
+                after=self._window_snapshot(window),
+            )
+            return booking
+
+    @staticmethod
+    def _window_snapshot(window) -> dict[str, Any]:
+        if window is None:
+            return {
+                "status": None,
+                "deadline_at": None,
+            }
+        deadline = window.deadline_at
+        return {
+            "status": window.status,
+            "deadline_at": deadline.isoformat() if deadline else None,
+        }
 
     @staticmethod
     def _clean_rejection_reason(reason: str | None) -> str:

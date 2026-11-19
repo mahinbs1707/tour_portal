@@ -13,6 +13,7 @@ import {
   createBooking,
   getBooking,
   listMyBookings,
+  submitPaymentAttempt,
 } from "./bookingsApi.js";
 
 describe("bookingsApi", () => {
@@ -63,6 +64,17 @@ describe("bookingsApi", () => {
     expect(apiRequestMock).toHaveBeenCalledWith(
       "/api/bookings/11111111-2222-3333-4444-555555555555/cancel/",
       { method: "POST" },
+    );
+  });
+
+  it("POSTs payment attempt with outcome body", async () => {
+    await submitPaymentAttempt("11111111-2222-3333-4444-555555555555", "SUCCESS");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/11111111-2222-3333-4444-555555555555/payments/attempt/",
+      {
+        method: "POST",
+        body: JSON.stringify({ outcome: "SUCCESS" }),
+      },
     );
   });
 });

@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "recommendations",
     "bookings",
     "payments",
+    "custom_tours",
+    "dashboard",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

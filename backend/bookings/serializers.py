@@ -5,7 +5,10 @@ from __future__ import annotations
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
+from django.utils import timezone
+
 from bookings.models import Booking
+from payments.eligibility import is_payment_eligible
 
 
 class BookingCreateSerializer(serializers.Serializer):
@@ -42,6 +45,12 @@ class AdminBookingRejectSerializer(serializers.Serializer):
     )
 
 
+class AdminBookingExtendSerializer(serializers.Serializer):
+    """Extend request body (Story 6.4): required future ``deadline_at``."""
+
+    deadline_at = serializers.DateTimeField()
+
+
 class BookingResponseSerializer(serializers.ModelSerializer):
     package_id = serializers.UUIDField(source="package.id", read_only=True)
     available_date_id = serializers.UUIDField(source="available_date.id", read_only=True)
@@ -70,7 +79,7 @@ class BookingResponseSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_payment_status(self, obj: Booking) -> str | None:
-        payment = obj.payments.order_by("created_at").first()
+        payment = obj.payments.order_by("-created_at", "-id").first()
         return payment.status if payment else None
 
     def get_payment_window_status(self, obj: Booking) -> str | None:
@@ -84,18 +93,33 @@ class BookingDetailSerializer(BookingResponseSerializer):
     """Customer history/detail shape (Story 5.3): create fields + package title.
 
     Booking / payment / window statuses stay separate keys. The create
-    response (`BookingResponseSerializer`) is unchanged.
+    response (`BookingResponseSerializer`) is unchanged. Story 7.2 adds
+    payment eligibility for Pay now gating.
     """
 
     package_title = serializers.CharField(source="package.title", read_only=True)
+    payment_window_deadline_at = serializers.SerializerMethodField()
+    payment_eligible = serializers.SerializerMethodField()
 
     class Meta(BookingResponseSerializer.Meta):
         fields = [
             *BookingResponseSerializer.Meta.fields,
             "package_title",
             "rejection_reason",
+            "payment_window_deadline_at",
+            "payment_eligible",
         ]
         read_only_fields = fields
+
+    def get_payment_window_deadline_at(self, obj: Booking) -> str | None:
+        try:
+            deadline = obj.payment_window.deadline_at
+        except ObjectDoesNotExist:
+            return None
+        return deadline.isoformat() if deadline else None
+
+    def get_payment_eligible(self, obj: Booking) -> bool:
+        return is_payment_eligible(obj, now=timezone.now())
 
 
 class AdminBookingSerializer(BookingDetailSerializer):
@@ -103,7 +127,8 @@ class AdminBookingSerializer(BookingDetailSerializer):
 
     Adds the booking owner's account identity (`customer_full_name`,
     `customer_email`) alongside the booking contact fields already on the row.
-    Booking / payment / window statuses remain separate keys.
+    Booking / payment / window statuses remain separate keys. Story 6.4 adds
+    payment window deadline + eligibility for Admin ops UI.
     """
 
     customer_full_name = serializers.CharField(

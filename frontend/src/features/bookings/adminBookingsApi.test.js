@@ -8,8 +8,10 @@ vi.mock("../../services/apiClient.js", () => ({
 
 import {
   approveAdminBooking,
+  extendAdminPaymentWindow,
   getAdminBooking,
   listAdminBookings,
+  reopenAdminPaymentWindow,
   rejectAdminBooking,
 } from "./adminBookingsApi.js";
 
@@ -62,5 +64,24 @@ describe("adminBookingsApi", () => {
     expect(apiRequestMock).toHaveBeenCalledWith("/api/bookings/admin/abc-123/", {
       method: "GET",
     });
+  });
+
+  it("reopens payment window with POST", async () => {
+    await reopenAdminPaymentWindow("abc-123");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/admin/abc-123/reopen/",
+      { method: "POST" },
+    );
+  });
+
+  it("extends payment window with POST and deadline_at body", async () => {
+    await extendAdminPaymentWindow("abc-123", "2099-12-01T00:00:00.000Z");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/bookings/admin/abc-123/extend/",
+      {
+        method: "POST",
+        body: JSON.stringify({ deadline_at: "2099-12-01T00:00:00.000Z" }),
+      },
+    );
   });
 });

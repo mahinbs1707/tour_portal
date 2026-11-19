@@ -38,3 +38,17 @@ export function cancelBooking(bookingId) {
     { method: "POST" },
   );
 }
+
+/**
+ * POST /api/bookings/<uuid>/payments/attempt/ — mock payment attempt (Story 7.1).
+ * @param {"SUCCESS"|"FAILED"|"CANCELLED"} outcome
+ */
+export function submitPaymentAttempt(bookingId, outcome) {
+  return apiRequest(
+    `/api/bookings/${encodeURIComponent(bookingId)}/payments/attempt/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ outcome }),
+    },
+  );
+}

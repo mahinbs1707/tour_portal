@@ -46,6 +46,19 @@ const APPROVED = {
   package_title: "Sylhet Retreat",
 };
 
+const ELIGIBLE = {
+  ...APPROVED,
+  payment_window_status: "OPEN",
+  payment_eligible: true,
+  payment_window_deadline_at: "2099-12-01T06:00:00Z",
+};
+
+const PAID = {
+  ...ELIGIBLE,
+  payment_status: "SUCCESS",
+  payment_eligible: false,
+};
+
 function apiError(status, message = "x") {
   return new ApiError({
     status,
@@ -162,6 +175,38 @@ describe("BookingDetailPage", () => {
       expect(screen.queryByTestId("booking-cancel-button")).not.toBeInTheDocument();
     },
   );
+
+  it("shows Pay now when payment_eligible", async () => {
+    getMock.mockResolvedValue(ELIGIBLE);
+    renderRoutes("/app/customer/bookings/b-2");
+    const link = await screen.findByTestId("booking-pay-now-link");
+    expect(link).toHaveTextContent(messages.booking.payNow);
+    expect(link).toHaveAttribute("href", "/app/customer/bookings/b-2/pay");
+  });
+
+  it("hides Pay now when payment is SUCCESS", async () => {
+    getMock.mockResolvedValue(PAID);
+    renderRoutes("/app/customer/bookings/b-2");
+    await screen.findByTestId("booking-detail-reference");
+    expect(screen.queryByTestId("booking-pay-now-link")).toBeNull();
+  });
+
+  it("shows retry hint when eligible after FAILED payment", async () => {
+    getMock.mockResolvedValue({
+      ...ELIGIBLE,
+      payment_status: "FAILED",
+    });
+    renderRoutes("/app/customer/bookings/b-2");
+    expect(await screen.findByTestId("booking-retry-pay-hint")).toHaveTextContent(
+      messages.booking.retryPayHint,
+    );
+  });
+
+  it("shows countdown on eligible APPROVED detail", async () => {
+    getMock.mockResolvedValue(ELIGIBLE);
+    renderRoutes("/app/customer/bookings/b-2");
+    expect(await screen.findByTestId("booking-detail-countdown-visible")).toBeInTheDocument();
+  });
 
   it("shows the rejection reason on a REJECTED booking, with no Cancel or Pay", async () => {
     getMock.mockResolvedValue({

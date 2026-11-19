@@ -43,6 +43,28 @@ export function rejectAdminBooking(bookingId, rejectionReason) {
   );
 }
 
+/** POST /api/bookings/admin/<uuid>/reopen/ — reopen an EXPIRED window (Story 6.4). */
+export function reopenAdminPaymentWindow(bookingId) {
+  return apiRequest(
+    `/api/bookings/admin/${encodeURIComponent(bookingId)}/reopen/`,
+    { method: "POST" },
+  );
+}
+
+/**
+ * POST /api/bookings/admin/<uuid>/extend/ — set a future deadline (Story 6.4).
+ * Body `{ deadline_at }` ISO string.
+ */
+export function extendAdminPaymentWindow(bookingId, deadlineAt) {
+  return apiRequest(
+    `/api/bookings/admin/${encodeURIComponent(bookingId)}/extend/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ deadline_at: deadlineAt }),
+    },
+  );
+}
+
 /** GET /api/bookings/admin/<uuid>/ — Admin booking detail. */
 export function getAdminBooking(bookingId) {
   return apiRequest(

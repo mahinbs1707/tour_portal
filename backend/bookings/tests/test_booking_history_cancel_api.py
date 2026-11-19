@@ -177,6 +177,16 @@ class BookingHistoryCancelAPITests(APITestCase):
             response.data["payment_window_status"], PaymentWindowStatus.NOT_OPEN
         )
 
+    def test_detail_includes_payment_eligibility_when_approved(self):
+        booking = self._make_booking(self.customer)
+        BookingService().approve(admin=self.admin, booking_id=booking.id)
+        self._login("customer@example.com")
+        response = self.client.get(f"/api/bookings/{booking.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("payment_eligible", response.data)
+        self.assertTrue(response.data["payment_eligible"])
+        self.assertIsNotNone(response.data["payment_window_deadline_at"])
+
     def test_detail_other_customer_and_missing_are_404(self):
         theirs = self._make_booking(self.other)
         self._login("customer@example.com")

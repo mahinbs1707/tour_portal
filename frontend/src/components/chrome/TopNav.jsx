@@ -11,13 +11,22 @@ function NavItems({ items, onNavigate, className = "" }) {
           <NavLink
             to={item.to}
             className={({ isActive }) =>
-              `inline-flex min-h-11 items-center rounded-[var(--radius-md)] px-2 text-[var(--color-foreground)] ${
+              `relative inline-flex min-h-11 items-center rounded-[var(--radius-md)] px-2 text-[var(--color-foreground)] ${
                 isActive ? "font-semibold text-[var(--color-primary)]" : "hover:text-[var(--color-primary)]"
               }`
             }
             onClick={onNavigate}
           >
             {item.label}
+            {item.badgeCount > 0 ? (
+              <span
+                className="ml-1.5 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-destructive)] px-1 text-body-sm font-semibold text-[var(--color-primary-foreground)]"
+                aria-label={`${item.badgeCount} unread notifications`}
+                data-testid="notifications-nav-badge"
+              >
+                {item.badgeCount > 9 ? "9+" : String(item.badgeCount)}
+              </span>
+            ) : null}
           </NavLink>
         </li>
       ))}

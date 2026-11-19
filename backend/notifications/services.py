@@ -22,6 +22,8 @@ MVP_EVENT_KEYS = frozenset(
         "custom_tour.submitted",
         "custom_tour.approved",
         "custom_tour.rejected",
+        "custom_tour.reapply_enabled",
+        "custom_tour.resubmitted",
     }
 )
 

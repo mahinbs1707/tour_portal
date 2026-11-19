@@ -6,10 +6,12 @@ import { BookingStatusChips } from "./BookingStatusChips.jsx";
 import { ConfirmDialog } from "../packages/ConfirmDialog.jsx";
 import {
   approveAdminBooking,
+  extendAdminPaymentWindow,
   getAdminBooking,
+  reopenAdminPaymentWindow,
   rejectAdminBooking,
 } from "./adminBookingsApi.js";
-import { formatSubmittedAt } from "./bookingFormat.js";
+import { deadlineLocalToIso, formatSubmittedAt } from "./bookingFormat.js";
 
 /** Matches the backend cap (same as booking additional_requirements). */
 const REJECTION_REASON_MAX_LENGTH = 2000;
@@ -39,7 +41,8 @@ const sectionClass =
  * success the page stays here and shows the refreshed statuses. Story 6.3:
  * Reject (only while PENDING) in an alertdialog with a required reason; after
  * success the page stays here, shows the persisted reason, and the decision
- * controls disappear. Reopen / extend / Pay / Cancel arrive in later stories.
+ * controls disappear. Story 6.4: reopen (EXPIRED only) and extend (future
+ * deadline) on approved bookings; stay on detail after success. Pay stays hidden.
  */
 export function AdminBookingDetailPage() {
   const { id } = useParams();
@@ -57,10 +60,23 @@ export function AdminBookingDetailPage() {
   const [rejecting, setRejecting] = useState(false);
   const [rejectError, setRejectError] = useState("");
   const [rejectSuccess, setRejectSuccess] = useState("");
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const [reopenError, setReopenError] = useState("");
+  const [reopenSuccess, setReopenSuccess] = useState("");
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [extendDeadlineLocal, setExtendDeadlineLocal] = useState("");
+  const [extendFieldError, setExtendFieldError] = useState("");
+  const [extending, setExtending] = useState(false);
+  const [extendError, setExtendError] = useState("");
+  const [extendSuccess, setExtendSuccess] = useState("");
   const generationRef = useRef(0);
   const approvingRef = useRef(false);
   const rejectingRef = useRef(false);
+  const reopeningRef = useRef(false);
+  const extendingRef = useRef(false);
   const reasonInputRef = useRef(null);
+  const extendInputRef = useRef(null);
 
   const load = useCallback(async () => {
     const generation = ++generationRef.current;
@@ -101,6 +117,14 @@ export function AdminBookingDetailPage() {
     setRejectFieldError("");
     setRejectError("");
     setRejectSuccess("");
+    setReopenOpen(false);
+    setReopenError("");
+    setReopenSuccess("");
+    setExtendOpen(false);
+    setExtendDeadlineLocal("");
+    setExtendFieldError("");
+    setExtendError("");
+    setExtendSuccess("");
     load();
     return () => {
       generationRef.current += 1;
@@ -111,6 +135,11 @@ export function AdminBookingDetailPage() {
   const closeReject = useCallback(() => {
     setRejectOpen(false);
     setRejectFieldError("");
+  }, []);
+  const closeReopen = useCallback(() => setReopenOpen(false), []);
+  const closeExtend = useCallback(() => {
+    setExtendOpen(false);
+    setExtendFieldError("");
   }, []);
 
   function openReject() {
@@ -249,7 +278,122 @@ export function AdminBookingDetailPage() {
     }
   }
 
+  async function handleReopenConfirm() {
+    if (reopeningRef.current || !booking) {
+      return;
+    }
+    const generation = generationRef.current;
+    reopeningRef.current = true;
+    setReopening(true);
+    setReopenError("");
+    setReopenSuccess("");
+    setExtendError("");
+    setExtendSuccess("");
+    try {
+      const updated = await reopenAdminPaymentWindow(booking.id);
+      if (generation !== generationRef.current) {
+        return;
+      }
+      setBooking(updated);
+      setReopenSuccess(
+        messages.adminBookings.reopenSuccess.replace(
+          "{reference}",
+          updated.reference,
+        ),
+      );
+      setReopenOpen(false);
+    } catch (err) {
+      if (generation !== generationRef.current) {
+        return;
+      }
+      setReopenOpen(false);
+      const errors = messages.adminBookings.errors;
+      if (err instanceof ApiError && err.status === 409) {
+        setReopenError(errors.reopenNotExpired);
+        load();
+      } else if (err instanceof ApiError && err.status === 404) {
+        setBooking(null);
+        setNotFound(true);
+      } else if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setReopenError(errors.reopenGeneric);
+      } else {
+        setReopenError(errors.reopenOutcomeUnknown);
+        load();
+      }
+    } finally {
+      reopeningRef.current = false;
+      setReopening(false);
+    }
+  }
+
+  async function handleExtendConfirm() {
+    if (extendingRef.current || !booking) {
+      return;
+    }
+    const errors = messages.adminBookings.errors;
+    if (!extendDeadlineLocal.trim()) {
+      setExtendFieldError(errors.extendDeadlineRequired);
+      extendInputRef.current?.focus();
+      return;
+    }
+    const generation = generationRef.current;
+    extendingRef.current = true;
+    setExtending(true);
+    setExtendFieldError("");
+    setExtendError("");
+    setExtendSuccess("");
+    setReopenError("");
+    setReopenSuccess("");
+    try {
+      const updated = await extendAdminPaymentWindow(
+        booking.id,
+        deadlineLocalToIso(extendDeadlineLocal),
+      );
+      if (generation !== generationRef.current) {
+        return;
+      }
+      setBooking(updated);
+      setExtendSuccess(
+        messages.adminBookings.extendSuccess.replace(
+          "{reference}",
+          updated.reference,
+        ),
+      );
+      setExtendOpen(false);
+      setExtendDeadlineLocal("");
+    } catch (err) {
+      if (generation !== generationRef.current) {
+        return;
+      }
+      if (err instanceof ApiError && err.status === 400 && err.fieldErrors.deadline_at) {
+        setExtendFieldError(err.fieldErrors.deadline_at[0]);
+        return;
+      }
+      setExtendOpen(false);
+      if (err instanceof ApiError && err.status === 409) {
+        setExtendError(errors.extendNotAllowed);
+        load();
+      } else if (err instanceof ApiError && err.status === 404) {
+        setBooking(null);
+        setNotFound(true);
+      } else if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setExtendError(errors.extendGeneric);
+      } else {
+        setExtendError(errors.extendOutcomeUnknown);
+        load();
+      }
+    } finally {
+      extendingRef.current = false;
+      setExtending(false);
+    }
+  }
+
   const canApprove = booking?.status === "PENDING";
+  const canReopen =
+    booking?.status === "APPROVED" && booking?.payment_window_status === "EXPIRED";
+  const canExtend =
+    booking?.status === "APPROVED" && booking?.payment_window_status !== "NOT_OPEN";
+  const windowBusy = approving || rejecting || reopening || extending;
 
   return (
     <section
@@ -351,6 +495,46 @@ export function AdminBookingDetailPage() {
         </p>
       ) : null}
 
+      {reopenSuccess ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-body-sm"
+          role="status"
+          data-testid="admin-booking-reopen-success"
+        >
+          {reopenSuccess}
+        </p>
+      ) : null}
+
+      {reopenError ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-3 py-2 text-body-sm text-[var(--color-destructive)]"
+          role="alert"
+          data-testid="admin-booking-reopen-error"
+        >
+          {reopenError}
+        </p>
+      ) : null}
+
+      {extendSuccess ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-body-sm"
+          role="status"
+          data-testid="admin-booking-extend-success"
+        >
+          {extendSuccess}
+        </p>
+      ) : null}
+
+      {extendError ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-3 py-2 text-body-sm text-[var(--color-destructive)]"
+          role="alert"
+          data-testid="admin-booking-extend-error"
+        >
+          {extendError}
+        </p>
+      ) : null}
+
       {!loading && booking ? (
         <>
           <p
@@ -406,6 +590,24 @@ export function AdminBookingDetailPage() {
                 <span className="whitespace-pre-wrap break-words">
                   {orPlaceholder(booking.rejection_reason)}
                 </span>
+              </DetailRow>
+            ) : null}
+            {booking.payment_window_deadline_at ? (
+              <DetailRow
+                label={messages.adminBookings.paymentDeadlineLabel}
+                testId="admin-booking-detail-payment-deadline"
+              >
+                {formatSubmittedAt(booking.payment_window_deadline_at)}
+              </DetailRow>
+            ) : null}
+            {booking.status === "APPROVED" ? (
+              <DetailRow
+                label={messages.adminBookings.paymentEligibleLabel}
+                testId="admin-booking-detail-payment-eligible"
+              >
+                {booking.payment_eligible
+                  ? messages.adminBookings.paymentEligibleYes
+                  : messages.adminBookings.paymentEligibleNo}
               </DetailRow>
             ) : null}
           </dl>
@@ -470,7 +672,7 @@ export function AdminBookingDetailPage() {
                   setRejectSuccess("");
                   setConfirmOpen(true);
                 }}
-                disabled={approving || rejecting}
+                disabled={windowBusy}
                 data-testid="admin-booking-approve-button"
               >
                 {approving
@@ -481,13 +683,58 @@ export function AdminBookingDetailPage() {
                 type="button"
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-4 font-semibold text-[var(--color-destructive)] disabled:opacity-50"
                 onClick={openReject}
-                disabled={approving || rejecting}
+                disabled={windowBusy}
                 data-testid="admin-booking-reject-button"
               >
                 {rejecting
                   ? messages.adminBookings.rejecting
                   : messages.adminBookings.rejectBooking}
               </button>
+            </div>
+          ) : null}
+
+          {canReopen || canExtend ? (
+            <div className="mt-8 flex flex-wrap gap-3">
+              {canReopen ? (
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold"
+                  onClick={() => {
+                    setReopenError("");
+                    setReopenSuccess("");
+                    setExtendError("");
+                    setExtendSuccess("");
+                    setReopenOpen(true);
+                  }}
+                  disabled={windowBusy}
+                  data-testid="admin-booking-reopen-button"
+                >
+                  {reopening
+                    ? messages.adminBookings.reopening
+                    : messages.adminBookings.reopenWindow}
+                </button>
+              ) : null}
+              {canExtend ? (
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                  onClick={() => {
+                    setExtendError("");
+                    setExtendSuccess("");
+                    setReopenError("");
+                    setReopenSuccess("");
+                    setExtendDeadlineLocal("");
+                    setExtendFieldError("");
+                    setExtendOpen(true);
+                  }}
+                  disabled={windowBusy}
+                  data-testid="admin-booking-extend-button"
+                >
+                  {extending
+                    ? messages.adminBookings.extending
+                    : messages.adminBookings.extendWindow}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </>
@@ -567,6 +814,76 @@ export function AdminBookingDetailPage() {
               data-testid="admin-booking-reject-reason-error"
             >
               {rejectFieldError}
+            </p>
+          ) : null}
+        </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={reopenOpen && canReopen}
+        title={messages.adminBookings.reopenDialogTitle}
+        body={messages.adminBookings.reopenDialogBody.replace(
+          "{reference}",
+          booking?.reference || "",
+        )}
+        confirmLabel={messages.adminBookings.reopenDialogConfirm}
+        cancelLabel={messages.adminBookings.reopenDialogKeep}
+        onConfirm={handleReopenConfirm}
+        onCancel={closeReopen}
+      />
+
+      <ConfirmDialog
+        open={extendOpen && canExtend}
+        role="alertdialog"
+        title={messages.adminBookings.extendDialogTitle}
+        body={messages.adminBookings.extendDialogBody.replace(
+          "{reference}",
+          booking?.reference || "",
+        )}
+        confirmLabel={messages.adminBookings.extendDialogConfirm}
+        cancelLabel={messages.adminBookings.extendDialogKeep}
+        onConfirm={handleExtendConfirm}
+        onCancel={closeExtend}
+        initialFocusRef={extendInputRef}
+      >
+        <div className="mt-4">
+          <label
+            htmlFor="admin-booking-extend-deadline"
+            className="text-label text-[var(--color-muted-foreground)]"
+          >
+            {messages.adminBookings.extendDeadlineLabel}
+          </label>
+          <input
+            id="admin-booking-extend-deadline"
+            ref={extendInputRef}
+            type="datetime-local"
+            className="mt-1 block min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-[var(--color-foreground)]"
+            value={extendDeadlineLocal}
+            required
+            aria-required="true"
+            aria-invalid={extendFieldError ? "true" : "false"}
+            aria-describedby={
+              extendFieldError
+                ? "admin-booking-extend-deadline-error"
+                : undefined
+            }
+            disabled={extending}
+            onChange={(event) => {
+              setExtendDeadlineLocal(event.target.value);
+              if (extendFieldError) {
+                setExtendFieldError("");
+              }
+            }}
+            data-testid="admin-booking-extend-deadline"
+          />
+          {extendFieldError ? (
+            <p
+              id="admin-booking-extend-deadline-error"
+              className="mt-1 mb-0 text-body-sm text-[var(--color-destructive)]"
+              role="alert"
+              data-testid="admin-booking-extend-deadline-error"
+            >
+              {extendFieldError}
             </p>
           ) : null}
         </div>

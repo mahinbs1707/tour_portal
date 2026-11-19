@@ -80,14 +80,42 @@ context:
 - Given the repository, when reviewing committed files, then secrets are only via environment / `.env.example` placeholders—not committed secret values
 - Given Nginx is up, when requesting `/api/*` (and `/media/*`, `/django-admin/*`), then those paths are not SPA-fallback to the React `index.html`
 
+### Review Findings
+
+- [x] [Review][Patch] Anchor PowerShell media 404 to HTTP status line [`deploy/smoke-check.ps1`] — fixed: `(?m)^HTTP/\S+\s+404\b`
+- [x] [Review][Patch] Smoke-test bare `/api|/media|/django-admin` redirects keep `:$HOST_PORT` [`deploy/smoke-check.ps1`, `deploy/smoke-check.sh`] — fixed
+- [x] [Review][Patch] Proxy `Host` should use `$http_host` (preserve published port) [`deploy/nginx/default.conf`] — fixed
+- [x] [Review][Patch] Assert fail-closed `DJANGO_SECRET_KEY` (no hardcoded fallback) — fixed via smoke source checks + `backend/scripts/env_contract.py` / `deploy/config-validate.*`
+- [x] [Review][Patch] PowerShell smoke assert SPA `Content-Type: text/html` [`deploy/smoke-check.ps1`] — fixed
+- [x] [Review][Patch] Add `.gitattributes` `eol=lf` for shell entrypoints [`.gitattributes`] — fixed
+- [x] [Review][Patch] README note that `frontend` is a one-shot publisher that exits [`README.md`] — fixed
+- [x] [Review][Patch] Reject whitespace-only `DJANGO_SECRET_KEY` [`backend/config/settings.py`] — fixed via `.strip()`
+- [x] [Review][Patch] Validate ALLOWED_HOSTS/CSRF carefully [`backend/config/settings.py`] — fixed: reject empty explicit ALLOWED_HOSTS; empty CSRF allowed; scheme check for CSRF entries
+- [x] [Review][Defer] Assert Django `settings.TIME_ZONE` in smoke — deferred: Story 1.1 AC is env-facing; settle on first timezone-sensitive story
+- [x] [Review][Defer] `sprint-status.yaml` absolute `story_location` path — deferred: BMAD tracking convention; convert to portable path in tooling cleanup
+- [x] [Review][Defer] Backend `/api/health/` does not ping Postgres — deferred: Compose already healthchecks Postgres separately; deepen when readiness SLOs land
+
+**Rejected**
+- false — Acceptance: `alias`+`try_files` cannot serve media — live `GET /media/smoke-existing.txt` returned `200` with body `ok-media`
+- false — Blind: spec `done` vs sprint `review` — intentional BMAD handoff until code-review completes
+- false — Blind: open `psycopg[binary]>=3.1.12` pin — matches Architecture §9 baseline
+- false — Blind: empty Spec Change Log — finding asks to edit the spec under review
+- low (rejected) — Blind: django-admin CSS/`collectstatic` — AC is routing-only; static pipeline is non-trivial
+- low (rejected) — Blind: `.gitignore` missing trailing newline — cosmetic
+- low (rejected) — Edge: `DJANGO_DEBUG=true/yes` not treated truthy — `.env.example` uses `1`
+- low (rejected) — Edge: case-sensitive reserved paths — uncommon; folding adds complexity
+- low (rejected) — Edge: parallel smoke temp-file races — everyday single-run verify does not hit this
+
 ## Implementation Notes
 
 - 2026-11-16: Greenfield Compose baseline landed under `frontend/`, `backend/`, `deploy/`, plus root `.env.example` and `README.md`.
 - HOST_PORT default `8080→80`; Nginx `nginx:1.28.0-alpine`; Postgres `18.7` volume at `/var/lib/postgresql`.
 - Verified: `docker compose … ps` shows postgres+backend healthy; `deploy/smoke-check.ps1` PASS covering SPA, `/api/health/` JSON (not SPA), `/media/` 404 (not SPA), `/django-admin/` proxied, secrets hygiene, `BUSINESS_TIMEZONE=Asia/Dhaka`.
 - Post-review patches: nginx exact-prefix redirects keep `$http_host` port; smoke asserts `"status":"ok"`, per-service health, migrations applied, PS status-line checks; frontend `npm ci` + lockfile + `index.html` guard; `DJANGO_SECRET_KEY` required; blank host/CSRF env uses `or` defaults; README Windows env copy.
+- Code-review patches (2026-11-16): PS media 404 anchored; bare-prefix redirect smoke; proxy `Host $http_host`; SPA content-type in PS; `.gitattributes` LF for `*.sh`; README frontend one-shot note; SECRET_KEY `.strip()`; ALLOWED_HOSTS reject empty explicit parse; CSRF empty allowed + scheme validation; `backend/scripts/env_contract.py` + `deploy/config-validate.*`.
+- Validation: `deploy/smoke-check.ps1` PASS; `deploy/config-validate.ps1` PASS. Deferred items unchanged in `deferred-work.md`.
 - Remaining risks: frontend one-shot static publisher (rebuild to refresh SPA); backend uses `runserver` for local baseline only.
-- baseline_commit=`NO_VCS` (repo has no commits yet); local `.env` remains untracked. Deferred items recorded in `deferred-work.md`.
+- Code-review outcome: all 9 patches applied; ACs re-validated via smoke + config-validate; sprint `1-1-local-compose-runtime-baseline` → `done`.
 
 ## Spec Change Log
 

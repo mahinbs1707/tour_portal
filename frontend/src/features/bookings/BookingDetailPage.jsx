@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { ConfirmDialog } from "../packages/ConfirmDialog.jsx";
 import { BookingStatusChips } from "./BookingStatusChips.jsx";
 import { formatSubmittedAt } from "./bookingFormat.js";
+import { canPayNow } from "./canPayNow.js";
 import { cancelBooking, getBooking } from "./bookingsApi.js";
+import { OfflinePayBanner } from "./OfflinePayBanner.jsx";
+import { PaymentWindowCountdown } from "./PaymentWindowCountdown.jsx";
+import { useOnlineStatus } from "./useOnlineStatus.js";
 
 function DetailRow({ label, children, testId }) {
   return (
@@ -18,9 +22,10 @@ function DetailRow({ label, children, testId }) {
   );
 }
 
-/** Customer booking detail with cancel-while-PENDING (Story 5.3). */
+/** Customer booking detail — cancel while PENDING (5.3); Pay now when eligible (7.2). */
 export function BookingDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -29,6 +34,7 @@ export function BookingDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
   const [cancelSuccess, setCancelSuccess] = useState("");
+  const [paySuccess, setPaySuccess] = useState("");
   const generationRef = useRef(0);
   const cancellingRef = useRef(false);
 
@@ -65,11 +71,20 @@ export function BookingDetailPage() {
     setConfirmOpen(false);
     setCancelError("");
     setCancelSuccess("");
+    setPaySuccess("");
     load();
     return () => {
       generationRef.current += 1;
     };
   }, [load]);
+
+  useEffect(() => {
+    const reference = location.state?.paySuccessReference;
+    if (reference) {
+      setPaySuccess(messages.booking.paySuccess.replace("{reference}", reference));
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
 
@@ -110,7 +125,12 @@ export function BookingDetailPage() {
     }
   }
 
+  const online = useOnlineStatus();
   const canCancel = booking?.status === "PENDING";
+  const showPayNow = Boolean(booking && canPayNow(booking));
+  const showRetryHint =
+    showPayNow &&
+    (booking?.payment_status === "FAILED" || booking?.payment_status === "CANCELLED");
 
   return (
     <section data-testid="booking-detail-page" aria-labelledby="booking-detail-heading">
@@ -187,6 +207,16 @@ export function BookingDetailPage() {
         </p>
       ) : null}
 
+      {paySuccess ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-body-sm"
+          role="status"
+          data-testid="booking-pay-success"
+        >
+          {paySuccess}
+        </p>
+      ) : null}
+
       {!loading && booking ? (
         <>
           <p className="mt-2 text-headline m-0" data-testid="booking-detail-package">
@@ -196,6 +226,10 @@ export function BookingDetailPage() {
           <div className="mt-6" aria-label={messages.booking.statusesTitle}>
             <BookingStatusChips booking={booking} testIdPrefix="booking-detail" />
           </div>
+
+          <PaymentWindowCountdown booking={booking} testIdPrefix="booking-detail-countdown" />
+
+          {!online && showPayNow ? <OfflinePayBanner testId="booking-detail-offline-banner" /> : null}
 
           <dl
             className="mt-8 m-0 grid gap-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-5 sm:grid-cols-2"
@@ -261,7 +295,46 @@ export function BookingDetailPage() {
                 </span>
               </DetailRow>
             ) : null}
+            {booking.payment_window_deadline_at ? (
+              <DetailRow
+                label={messages.booking.paymentDeadlineLabel}
+                testId="booking-detail-payment-deadline"
+              >
+                {formatSubmittedAt(booking.payment_window_deadline_at)}
+              </DetailRow>
+            ) : null}
           </dl>
+
+          {showRetryHint ? (
+            <p
+              className="mt-6 text-body-sm text-[var(--color-muted-foreground)]"
+              data-testid="booking-retry-pay-hint"
+            >
+              {messages.booking.retryPayHint}
+            </p>
+          ) : null}
+
+          {showPayNow ? (
+            <div className="mt-8">
+              {online ? (
+                <Link
+                  to={`/app/customer/bookings/${booking.id}/pay`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+                  data-testid="booking-pay-now-link"
+                >
+                  {messages.booking.payNow}
+                </Link>
+              ) : (
+                <span
+                  className="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] opacity-50"
+                  aria-disabled="true"
+                  data-testid="booking-pay-now-link"
+                >
+                  {messages.booking.payNow}
+                </span>
+              )}
+            </div>
+          ) : null}
 
           {canCancel ? (
             <div className="mt-8">

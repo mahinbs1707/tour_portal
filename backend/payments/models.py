@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from django.db import models
+from django.db.models import Q
 
 
 class PaymentStatus(models.TextChoices):
@@ -54,6 +55,13 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["booking"],
+                condition=Q(status=PaymentStatus.SUCCESS),
+                name="payments_payment_unique_success_per_booking",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"Payment {self.id} ({self.status})"
