@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { formatSubmittedAt } from "../bookings/bookingFormat.js";
@@ -17,6 +17,7 @@ const STATUS_OPTIONS = [
 ];
 
 export function AdminCustomToursPage() {
+  const location = useLocation();
   const [tours, setTours] = useState([]);
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
@@ -24,7 +25,9 @@ export function AdminCustomToursPage() {
   const [hasPrev, setHasPrev] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(
+    () => location.state?.statusFilter ?? "",
+  );
   const generationRef = useRef(0);
   const lastRequestedRef = useRef({ page: 1, status: "" });
 

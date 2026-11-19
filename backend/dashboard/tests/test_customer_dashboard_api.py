@@ -19,6 +19,21 @@ from packages.validators import min_bookable_date
 
 User = get_user_model()
 
+PACKAGE_FIELDS = {
+    "title": "Cox's Bazar Escape",
+    "short_description": "Beach weekend.",
+    "full_description": "Guided coastal tour.",
+    "destinations": "Cox's Bazar",
+    "duration_days": 3,
+    "duration_nights": 2,
+    "starting_location": "Dhaka",
+    "base_price": Decimal("22000.00"),
+    "currency": "BDT",
+    "included_services": "Hotel",
+    "excluded_services": "Flights",
+    "itinerary": "Day 1 arrive.",
+}
+
 
 class CustomerDashboardAPITests(APITestCase):
     def setUp(self):
@@ -40,18 +55,12 @@ class CustomerDashboardAPITests(APITestCase):
             is_staff=True,
         )
         self.package = TourPackage.objects.create(
-            title="Coast Tour",
-            destination="Cox's Bazar",
-            short_description="Beach",
-            long_description="Long",
-            duration_days=3,
-            base_price=Decimal("10000"),
-            currency="BDT",
+            **PACKAGE_FIELDS,
             status=PackageStatus.PUBLISHED,
         )
         self.available = AvailableDate.objects.create(
             package=self.package,
-            date=min_bookable_date() + timedelta(days=5),
+            tour_date=min_bookable_date() + timedelta(days=5),
             is_active=True,
         )
 

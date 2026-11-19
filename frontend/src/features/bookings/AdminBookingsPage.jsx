@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { BookingStatusChips } from "./BookingStatusChips.jsx";
@@ -21,6 +21,7 @@ const STATUS_OPTIONS = [
  * (Story 6.1). Read-only: no approve / reject / window controls yet.
  */
 export function AdminBookingsPage() {
+  const location = useLocation();
   const [bookings, setBookings] = useState([]);
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
@@ -29,7 +30,9 @@ export function AdminBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // Default filter is "All" (1A): no status param on initial load.
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(
+    () => location.state?.statusFilter ?? "",
+  );
   const generationRef = useRef(0);
   // Last requested {page,status}: Retry repeats this, not the last *successful* page.
   const lastRequestedRef = useRef({ page: 1, status: "" });

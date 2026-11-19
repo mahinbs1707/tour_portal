@@ -1,4 +1,4 @@
-"""Dashboard query aggregates (AD-18 / Story 9.2)."""
+"""Dashboard query aggregates (AD-18 / Stories 9.2–9.3)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,9 @@ from datetime import datetime
 from django.utils import timezone
 
 from bookings.models import Booking, BookingStatus
+from custom_tours.models import CustomTour, CustomTourStatus
 from notifications.models import Notification
+from packages.models import PackageStatus, TourPackage
 from payments.models import PaymentStatus, PaymentWindowStatus
 
 
@@ -48,4 +50,51 @@ class CustomerDashboardQueryService:
             pending_bookings=pending_bookings,
             open_payment_windows=open_payment_windows,
             unread_notifications=unread_notifications,
+        )
+
+
+@dataclass(frozen=True)
+class AdminDashboardSnapshot:
+    total_packages: int
+    published_packages: int
+    draft_packages: int
+    pending_bookings: int
+    approved_bookings: int
+    rejected_bookings: int
+    pending_custom_tours: int
+    approved_custom_tours: int
+    rejected_custom_tours: int
+
+
+class AdminDashboardQueryService:
+    """Read-only Admin operational metrics (FR-ADM-02)."""
+
+    @staticmethod
+    def snapshot() -> AdminDashboardSnapshot:
+        return AdminDashboardSnapshot(
+            total_packages=TourPackage.objects.count(),
+            published_packages=TourPackage.objects.filter(
+                status=PackageStatus.PUBLISHED
+            ).count(),
+            draft_packages=TourPackage.objects.filter(
+                status=PackageStatus.DRAFT
+            ).count(),
+            pending_bookings=Booking.objects.filter(
+                status=BookingStatus.PENDING
+            ).count(),
+            approved_bookings=Booking.objects.filter(
+                status=BookingStatus.APPROVED
+            ).count(),
+            rejected_bookings=Booking.objects.filter(
+                status=BookingStatus.REJECTED
+            ).count(),
+            pending_custom_tours=CustomTour.objects.filter(
+                status=CustomTourStatus.PENDING
+            ).count(),
+            approved_custom_tours=CustomTour.objects.filter(
+                status=CustomTourStatus.APPROVED
+            ).count(),
+            rejected_custom_tours=CustomTour.objects.filter(
+                status=CustomTourStatus.REJECTED
+            ).count(),
         )
