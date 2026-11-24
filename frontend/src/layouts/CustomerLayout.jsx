@@ -64,7 +64,7 @@ export function CustomerLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)] text-[var(--color-foreground)]">
       <SkipLink />
-      <TopNav brandTo="/app/customer" items={navItems} />
+      <TopNav brandTo="/" items={navItems} />
       <main id="main-content" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>

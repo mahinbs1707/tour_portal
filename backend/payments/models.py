@@ -27,13 +27,22 @@ class PaymentProvider(models.TextChoices):
 
 
 class Payment(models.Model):
-    """Payment attempt / ledger row for a booking (MVP starts as UNPAID)."""
+    """Payment attempt / ledger row for a booking or custom tour."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     booking = models.ForeignKey(
         "bookings.Booking",
         on_delete=models.CASCADE,
         related_name="payments",
+        null=True,
+        blank=True,
+    )
+    custom_tour = models.ForeignKey(
+        "custom_tours.CustomTour",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True,
+        blank=True,
     )
     status = models.CharField(
         max_length=16,
@@ -56,11 +65,23 @@ class Payment(models.Model):
     class Meta:
         ordering = ["-created_at"]
         constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (Q(booking__isnull=False) & Q(custom_tour__isnull=True))
+                    | (Q(booking__isnull=True) & Q(custom_tour__isnull=False))
+                ),
+                name="payments_payment_exactly_one_owner",
+            ),
             models.UniqueConstraint(
                 fields=["booking"],
-                condition=Q(status=PaymentStatus.SUCCESS),
+                condition=Q(status=PaymentStatus.SUCCESS, booking__isnull=False),
                 name="payments_payment_unique_success_per_booking",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["custom_tour"],
+                condition=Q(status=PaymentStatus.SUCCESS, custom_tour__isnull=False),
+                name="payments_payment_unique_success_per_custom_tour",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -68,13 +89,22 @@ class Payment(models.Model):
 
 
 class PaymentWindow(models.Model):
-    """Exactly one payment window per booking — writes only via PaymentService."""
+    """Exactly one payment window per booking or custom tour — writes via PaymentService."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     booking = models.OneToOneField(
         "bookings.Booking",
         on_delete=models.CASCADE,
         related_name="payment_window",
+        null=True,
+        blank=True,
+    )
+    custom_tour = models.OneToOneField(
+        "custom_tours.CustomTour",
+        on_delete=models.CASCADE,
+        related_name="payment_window",
+        null=True,
+        blank=True,
     )
     status = models.CharField(
         max_length=16,
@@ -90,6 +120,16 @@ class PaymentWindow(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (Q(booking__isnull=False) & Q(custom_tour__isnull=True))
+                    | (Q(booking__isnull=True) & Q(custom_tour__isnull=False))
+                ),
+                name="payments_window_exactly_one_owner",
+            ),
+        ]
 
     def __str__(self) -> str:
-        return f"PaymentWindow {self.booking_id} ({self.status})"
+        owner = self.booking_id or self.custom_tour_id
+        return f"PaymentWindow {owner} ({self.status})"

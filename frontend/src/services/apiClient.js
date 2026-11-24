@@ -268,3 +268,24 @@ export async function me() {
     method: "GET",
   });
 }
+
+/** POST /api/auth/password-reset/ — request reset (mock link when DEBUG). */
+export async function requestPasswordReset({ email }) {
+  return apiRequest("/api/auth/password-reset/", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** POST /api/auth/password-reset/confirm/ — set new password from token. */
+export async function confirmPasswordReset({
+  uid,
+  token,
+  password,
+  confirm_password,
+}) {
+  return apiRequest("/api/auth/password-reset/confirm/", {
+    method: "POST",
+    body: JSON.stringify({ uid, token, password, confirm_password }),
+  });
+}

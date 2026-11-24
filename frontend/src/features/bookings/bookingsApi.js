@@ -1,5 +1,28 @@
 import { apiRequest } from "../../services/apiClient.js";
 
+/** Statuses that block another booking for the same package. */
+export const ACTIVE_BOOKING_STATUSES = new Set(["PENDING", "APPROVED"]);
+
+/**
+ * Newest active (PENDING/APPROVED) booking for a package, if any.
+ * @param {Array<{ package_id?: string, status?: string }>|null|undefined} bookings
+ * @param {string} packageId
+ */
+export function findActiveBookingForPackage(bookings, packageId) {
+  const pid = String(packageId || "");
+  if (!pid || !Array.isArray(bookings)) {
+    return null;
+  }
+  return (
+    bookings.find(
+      (row) =>
+        row &&
+        String(row.package_id) === pid &&
+        ACTIVE_BOOKING_STATUSES.has(String(row.status || "").toUpperCase()),
+    ) || null
+  );
+}
+
 /**
  * POST /api/bookings/ — Customer create (Story 5.1 contract; Story 5.2 FE).
  * @param {{

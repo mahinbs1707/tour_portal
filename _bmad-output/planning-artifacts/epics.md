@@ -590,7 +590,7 @@ Customers complete mock payment only when APPROVED + window OPEN; PaymentProvide
 **Also binds:** NFR-15…19 (payment integrity); UX-DR6, UX-DR7, UX-DR12, UX-DR16 Flows 1 climax / 5; AD-6, AD-7, AD-8, AD-10, AD-16, AD-17 (`payment.*` events); BR-16, BR-16a, BR-16b, BR-16d, BR-16f, BR-16h
 
 ### Epic 8: Custom Tour Plans
-Customers build/submit private custom tours (≥7 days); Admins approve/reject+reason/adjustments/reapply flag; Customers reapply when enabled; never auto-publish to catalog.
+Customers build/submit private custom tours (≥7 days) with payment window `NOT_OPEN`; Admins approve/reject+reason/adjustments/reapply flag (approve opens 24h pay window on estimated budget); Customers reapply when enabled and Pay now after approve; never auto-publish to catalog.
 **User outcome:** Request a bespoke trip and iterate with Admin privately.
 **FRs covered:** FR-CT-01 … FR-CT-30, FR-CT-04a, FR-CT-18a; FR-ACT-01 … FR-ACT-12; FR-ADV-02, FR-ADV-05; FR-CUST-03, FR-CUST-05, FR-CUST-09; FR-NOTIF-05 … FR-NOTIF-08
 **Also binds:** UX-DR16 Flow 4; AD-7 custom statuses, AD-17, AD-20, AD-22; BR-10…BR-15

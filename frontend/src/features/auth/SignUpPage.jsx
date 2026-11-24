@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { PasswordField } from "../../components/ui/PasswordField.jsx";
 import { messages } from "../../i18n/messages.js";
 import { ApiError, me, register } from "../../services/apiClient.js";
 import { useAuth } from "./AuthContext.jsx";
@@ -218,63 +219,27 @@ export function SignUpPage() {
           ) : null}
         </div>
 
-        <div>
-          <label htmlFor={passwordId} className={labelClass}>
-            {messages.auth.password}
-          </label>
-          <input
-            id={passwordId}
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={submitting}
-            aria-invalid={Boolean(fieldErrors.password)}
-            aria-describedby={
-              fieldErrors.password ? `${passwordId}-error` : undefined
-            }
-            className={`${inputClass} ${
-              fieldErrors.password
-                ? "border-[var(--color-destructive)]"
-                : "border-[var(--color-input)]"
-            }`}
-          />
-          {fieldErrors.password ? (
-            <p id={`${passwordId}-error`} className={errorClass} role="alert">
-              {fieldErrors.password}
-            </p>
-          ) : null}
-        </div>
+        <PasswordField
+          id={passwordId}
+          name="password"
+          label={messages.auth.password}
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={submitting}
+          error={fieldErrors.password || ""}
+        />
 
-        <div>
-          <label htmlFor={confirmId} className={labelClass}>
-            {messages.auth.confirmPassword}
-          </label>
-          <input
-            id={confirmId}
-            name="confirm_password"
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            disabled={submitting}
-            aria-invalid={Boolean(fieldErrors.confirm_password)}
-            aria-describedby={
-              fieldErrors.confirm_password ? `${confirmId}-error` : undefined
-            }
-            className={`${inputClass} ${
-              fieldErrors.confirm_password
-                ? "border-[var(--color-destructive)]"
-                : "border-[var(--color-input)]"
-            }`}
-          />
-          {fieldErrors.confirm_password ? (
-            <p id={`${confirmId}-error`} className={errorClass} role="alert">
-              {fieldErrors.confirm_password}
-            </p>
-          ) : null}
-        </div>
+        <PasswordField
+          id={confirmId}
+          name="confirm_password"
+          label={messages.auth.confirmPassword}
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          disabled={submitting}
+          error={fieldErrors.confirm_password || ""}
+        />
 
         <button
           type="submit"

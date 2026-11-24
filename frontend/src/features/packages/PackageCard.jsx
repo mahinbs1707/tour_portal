@@ -27,7 +27,7 @@ export function PackageCard({ pkg }) {
     <li>
       <Link
         to={`/explore/${pkg.id}`}
-        className="block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-card-foreground)] no-underline hover:border-[var(--color-primary)]"
+        className="package-card chrome-motion group block h-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-card-foreground)] no-underline shadow-[var(--shadow-panel)] hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[var(--shadow-card-hover)]"
         data-testid={`package-card-${pkg.id}`}
       >
         <div className="aspect-[4/3] w-full overflow-hidden bg-[var(--color-muted)]">
@@ -35,7 +35,7 @@ export function PackageCard({ pkg }) {
             <img
               src={coverSrc}
               alt={coverAlt}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               data-testid={`package-card-cover-${pkg.id}`}
               onError={() => setCoverFailed(true)}
             />
@@ -48,12 +48,12 @@ export function PackageCard({ pkg }) {
             </div>
           )}
         </div>
-        <div className="p-4">
+        <div className="flex flex-col gap-2 p-5">
           <h2 className="text-headline m-0">{pkg.title}</h2>
-          <p className="mt-2 m-0 text-body-sm text-[var(--color-muted-foreground)]">
+          <p className="m-0 line-clamp-2 text-body-sm text-[var(--color-muted-foreground)]">
             {pkg.short_description}
           </p>
-          <p className="mt-3 m-0 text-body-sm">
+          <p className="m-0 text-body-sm text-[var(--color-muted-foreground)]">
             <span data-testid={`package-card-destinations-${pkg.id}`}>
               {pkg.destinations}
             </span>
@@ -61,7 +61,7 @@ export function PackageCard({ pkg }) {
             <span data-testid={`package-card-duration-${pkg.id}`}>{duration}</span>
           </p>
           <p
-            className="mt-2 m-0 font-semibold"
+            className="mt-1 m-0 text-[1.05rem] font-semibold text-[var(--color-primary)]"
             data-testid={`package-card-price-${pkg.id}`}
           >
             {price}

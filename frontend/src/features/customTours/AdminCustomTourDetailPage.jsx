@@ -3,13 +3,13 @@ import { Link, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { ConfirmDialog } from "../packages/ConfirmDialog.jsx";
+import { BookingStatusChips } from "../bookings/BookingStatusChips.jsx";
 import { formatSubmittedAt } from "../bookings/bookingFormat.js";
 import {
   approveAdminCustomTour,
   getAdminCustomTour,
   rejectAdminCustomTour,
 } from "./adminCustomToursApi.js";
-import { CustomTourStatusChip } from "./CustomTourStatusChip.jsx";
 import { formatCustomTourDateRange } from "./customTourFormat.js";
 
 const REJECTION_REASON_MAX = 2000;
@@ -43,6 +43,7 @@ export function AdminCustomTourDetailPage() {
   const generationRef = useRef(0);
   const approvingRef = useRef(false);
   const rejectingRef = useRef(false);
+  const rejectReasonRef = useRef(null);
 
   const load = useCallback(async () => {
     const generation = ++generationRef.current;
@@ -201,9 +202,25 @@ export function AdminCustomTourDetailPage() {
       </Link>
       <h1 className="text-display-sm m-0 mt-4">{messages.adminCustomTours.detailTitle}</h1>
       <p className="mt-2 text-headline m-0">{tour.title}</p>
-      <div className="mt-3">
-        <CustomTourStatusChip status={tour.status} testId="admin-custom-tour-status" />
+
+      <div className="mt-6" aria-label={messages.booking.statusesTitle}>
+        <BookingStatusChips
+          booking={{
+            status: tour.status,
+            payment_status: tour.payment_status,
+            payment_window_status: tour.payment_window_status,
+          }}
+          testIdPrefix="admin-custom-tour"
+        />
       </div>
+      {tour.payment_window_deadline_at ? (
+        <p className="mt-3 text-body-sm text-[var(--color-muted-foreground)]">
+          {messages.booking.paymentDeadlineLabel}:{" "}
+          <span data-testid="admin-custom-tour-payment-deadline">
+            {formatSubmittedAt(tour.payment_window_deadline_at)}
+          </span>
+        </p>
+      ) : null}
 
       <dl className="mt-8 grid gap-4 sm:grid-cols-2">
         <DetailRow label={messages.adminCustomTours.customerNameLabel}>
@@ -299,25 +316,36 @@ export function AdminCustomTourDetailPage() {
         onCancel={() => setRejectOpen(false)}
         confirmDisabled={rejecting}
         role="alertdialog"
+        initialFocusRef={rejectReasonRef}
       >
         <label className="mt-4 block text-label" htmlFor="admin-ct-reject-reason">
           {messages.adminCustomTours.rejectReasonLabel}
           <textarea
             id="admin-ct-reject-reason"
-            className="mt-1 w-full min-h-24 rounded-[var(--radius-md)] border px-3 py-2"
+            ref={rejectReasonRef}
+            className="mt-1 w-full min-h-24 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-[var(--color-foreground)]"
             value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
+            onChange={(e) => {
+              setRejectReason(e.target.value);
+              if (rejectFieldError) {
+                setRejectFieldError("");
+              }
+            }}
             maxLength={REJECTION_REASON_MAX}
+            disabled={rejecting}
+            data-testid="admin-ct-reject-reason"
           />
         </label>
         <label className="mt-3 block text-label" htmlFor="admin-ct-adjustments">
           {messages.adminCustomTours.adjustmentsLabel}
           <textarea
             id="admin-ct-adjustments"
-            className="mt-1 w-full min-h-20 rounded-[var(--radius-md)] border px-3 py-2"
+            className="mt-1 w-full min-h-20 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-[var(--color-foreground)]"
             value={rejectAdjustments}
             onChange={(e) => setRejectAdjustments(e.target.value)}
             maxLength={ADJUSTMENTS_MAX}
+            disabled={rejecting}
+            data-testid="admin-ct-adjustments"
           />
         </label>
         <label className="mt-3 flex items-center gap-2 text-body-sm">

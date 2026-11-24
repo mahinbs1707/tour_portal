@@ -10,6 +10,7 @@ export const guestNavItems = [
 
 /** Customer primary nav — public + customer chrome. */
 export const customerNavItems = [
+  { to: "/app/customer", label: messages.nav.home, end: true },
   { to: "/explore", label: messages.nav.explore },
   { to: "/ai", label: messages.nav.ai },
   { to: "/app/customer/bookings", label: messages.nav.myBookings },

@@ -100,6 +100,8 @@ class BookingDetailSerializer(BookingResponseSerializer):
     package_title = serializers.CharField(source="package.title", read_only=True)
     payment_window_deadline_at = serializers.SerializerMethodField()
     payment_eligible = serializers.SerializerMethodField()
+    amount_due = serializers.SerializerMethodField()
+    currency = serializers.SerializerMethodField()
 
     class Meta(BookingResponseSerializer.Meta):
         fields = [
@@ -108,6 +110,8 @@ class BookingDetailSerializer(BookingResponseSerializer):
             "rejection_reason",
             "payment_window_deadline_at",
             "payment_eligible",
+            "amount_due",
+            "currency",
         ]
         read_only_fields = fields
 
@@ -120,6 +124,18 @@ class BookingDetailSerializer(BookingResponseSerializer):
 
     def get_payment_eligible(self, obj: Booking) -> bool:
         return is_payment_eligible(obj, now=timezone.now())
+
+    def get_amount_due(self, obj: Booking) -> str:
+        payment = obj.payments.order_by("-created_at", "-id").first()
+        if payment is not None:
+            return f"{payment.amount:.2f}"
+        return f"{obj.package.base_price:.2f}"
+
+    def get_currency(self, obj: Booking) -> str:
+        payment = obj.payments.order_by("-created_at", "-id").first()
+        if payment is not None:
+            return payment.currency
+        return obj.package.currency
 
 
 class AdminBookingSerializer(BookingDetailSerializer):

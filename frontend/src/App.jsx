@@ -4,6 +4,8 @@ import { AuthProvider } from "./features/auth/AuthContext.jsx";
 import { RequireAuth } from "./features/auth/RequireAuth.jsx";
 import { RequireRole } from "./features/auth/RequireRole.jsx";
 import { SessionExpiredModal } from "./features/auth/SessionExpiredModal.jsx";
+import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage.jsx";
+import { ResetPasswordPage } from "./features/auth/ResetPasswordPage.jsx";
 import { SignInPage } from "./features/auth/SignInPage.jsx";
 import { SignOutPage } from "./features/auth/SignOutPage.jsx";
 import { SignUpPage } from "./features/auth/SignUpPage.jsx";
@@ -24,6 +26,7 @@ import { PlaceholderPage } from "./features/public/PlaceholderPage.jsx";
 import { CustomTourConfirmationPage } from "./features/customTours/CustomTourConfirmationPage.jsx";
 import { CustomTourDetailPage } from "./features/customTours/CustomTourDetailPage.jsx";
 import { CustomTourFormPage } from "./features/customTours/CustomTourFormPage.jsx";
+import { CustomTourMockCheckoutPage } from "./features/customTours/CustomTourMockCheckoutPage.jsx";
 import { CustomTourReapplyPage } from "./features/customTours/CustomTourReapplyPage.jsx";
 import { AdminCustomTourDetailPage } from "./features/customTours/AdminCustomTourDetailPage.jsx";
 import { AdminCustomToursPage } from "./features/customTours/AdminCustomToursPage.jsx";
@@ -45,6 +48,8 @@ export function AppRoutes() {
         <Route path="ai" element={<AiRecommendationsPage />} />
         <Route path="sign-in" element={<SignInPage />} />
         <Route path="sign-up" element={<SignUpPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route path="sign-out" element={<SignOutPage />} />
       </Route>
 
@@ -86,6 +91,10 @@ export function AppRoutes() {
         <Route
           path="custom-tours/:id/reapply"
           element={<CustomTourReapplyPage />}
+        />
+        <Route
+          path="custom-tours/:id/pay"
+          element={<CustomTourMockCheckoutPage />}
         />
         <Route path="custom-tours/:id" element={<CustomTourDetailPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

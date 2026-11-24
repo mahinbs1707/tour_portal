@@ -3,14 +3,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { canPayNow } from "./canPayNow.js";
-import { formatSubmittedAt } from "./bookingFormat.js";
+import { formatTourDate } from "../packages/PackageDetailPage.jsx";
 import { getBooking, submitPaymentAttempt } from "./bookingsApi.js";
+import { MockPaymentCheckoutForm } from "./MockPaymentCheckoutForm.jsx";
 import { OfflinePayBanner } from "./OfflinePayBanner.jsx";
-import { PaymentWindowCountdown } from "./PaymentWindowCountdown.jsx";
 import { useOnlineStatus } from "./useOnlineStatus.js";
 
 /**
- * Full-page mock checkout (Story 7.2). No card fields — simulate outcomes only.
+ * Full-page checkout (Story 7.2). Mock provider only — card fields never leave the browser.
  */
 export function MockCheckoutPage() {
   const { id } = useParams();
@@ -103,10 +103,14 @@ export function MockCheckoutPage() {
   const controlsDisabled = submitting || !online;
 
   return (
-    <section data-testid="mock-checkout-page" aria-labelledby="mock-checkout-heading">
+    <section
+      className="mx-auto max-w-[var(--space-max-content-width)] px-[var(--space-margin-mobile)] py-10 lg:px-[var(--space-margin-desktop)] lg:py-14"
+      data-testid="mock-checkout-page"
+      aria-labelledby="mock-checkout-heading"
+    >
       <Link
         to={`/app/customer/bookings/${id}`}
-        className="text-body-sm font-semibold"
+        className="inline-flex min-h-11 items-center text-body-sm font-semibold text-[var(--color-primary)]"
         data-testid="mock-checkout-back"
       >
         {messages.booking.checkoutBackToDetail}
@@ -115,16 +119,8 @@ export function MockCheckoutPage() {
       <h1 id="mock-checkout-heading" className="text-display-sm mt-3 mb-0">
         {messages.booking.checkoutTitle}
       </h1>
-      <p className="mt-2 text-body-sm text-[var(--color-muted-foreground)]">
+      <p className="mt-2 max-w-2xl text-body-sm text-[var(--color-muted-foreground)]">
         {messages.booking.checkoutSubtitle}
-      </p>
-
-      <p
-        className="mt-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-body-sm font-semibold"
-        role="note"
-        data-testid="mock-checkout-legend"
-      >
-        {messages.booking.checkoutMockLegend}
       </p>
 
       {loading ? (
@@ -164,63 +160,46 @@ export function MockCheckoutPage() {
               className="mt-8 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-card)] p-6"
               data-testid="mock-checkout-ineligible"
             >
-              <h2 className="text-headline m-0">{messages.booking.checkoutIneligibleTitle}</h2>
+              <h2 className="text-headline m-0">
+                {messages.booking.checkoutIneligibleTitle}
+              </h2>
               <p className="mt-2 text-body-sm text-[var(--color-muted-foreground)]">
                 {messages.booking.checkoutIneligibleBody}
               </p>
             </div>
           ) : (
-            <div className="mt-8 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-              <p className="m-0 font-semibold" data-testid="mock-checkout-reference">
-                {messages.booking.checkoutReference.replace(
-                  "{reference}",
-                  booking.reference,
-                )}
-              </p>
-              <PaymentWindowCountdown
-                booking={booking}
-                testIdPrefix="mock-checkout-countdown"
-              />
-              {booking.payment_window_deadline_at ? (
-                <p className="mt-2 text-body-sm text-[var(--color-muted-foreground)]">
-                  {messages.booking.paymentDeadlineLabel}:{" "}
-                  <span data-testid="mock-checkout-deadline">
-                    {formatSubmittedAt(booking.payment_window_deadline_at)}
-                  </span>
-                </p>
-              ) : null}
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button
-                  type="button"
-                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
-                  disabled={controlsDisabled}
-                  onClick={() => handleSimulate("SUCCESS")}
-                  data-testid="mock-checkout-simulate-success"
-                >
-                  {submitting
-                    ? messages.booking.checkoutSubmitting
-                    : messages.booking.simulateSuccess}
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold"
-                  disabled={controlsDisabled}
-                  onClick={() => handleSimulate("FAILED")}
-                  data-testid="mock-checkout-simulate-failed"
-                >
-                  {messages.booking.simulateFailed}
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-destructive)] px-4 font-semibold text-[var(--color-destructive)] disabled:opacity-50"
-                  disabled={controlsDisabled}
-                  onClick={() => handleSimulate("CANCELLED")}
-                  data-testid="mock-checkout-simulate-cancelled"
-                >
-                  {messages.booking.simulateCancelled}
-                </button>
-              </div>
-            </div>
+            <MockPaymentCheckoutForm
+              title={booking.package_title}
+              referenceLine={messages.booking.checkoutReference.replace(
+                "{reference}",
+                booking.reference,
+              )}
+              amount={booking.amount_due}
+              currency={booking.currency}
+              metaRows={[
+                {
+                  label: messages.booking.checkoutTravelDateLabel,
+                  value: formatTourDate(booking.tour_date),
+                },
+                {
+                  label: messages.booking.checkoutTravelersLabel,
+                  value: String(booking.travelers ?? ""),
+                },
+              ]}
+              bookingForCountdown={booking}
+              countdownTestIdPrefix="mock-checkout-countdown"
+              deadlineAt={booking.payment_window_deadline_at}
+              disabled={controlsDisabled}
+              submitting={submitting}
+              onPaySuccess={() => handleSimulate("SUCCESS")}
+              onSimulateFailed={() => handleSimulate("FAILED")}
+              onSimulateCancelled={() => handleSimulate("CANCELLED")}
+              successTestId="mock-checkout-simulate-success"
+              failedTestId="mock-checkout-simulate-failed"
+              cancelledTestId="mock-checkout-simulate-cancelled"
+              amountTestId="mock-checkout-amount"
+              referenceTestId="mock-checkout-reference"
+            />
           )}
         </>
       ) : null}

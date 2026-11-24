@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 from rest_framework import serializers
 
 from custom_tours.models import CustomTour, CustomTourReview
+from payments.eligibility import is_custom_tour_payment_eligible
+from payments.models import PaymentStatus
 
 
 class CustomTourCreateSerializer(serializers.Serializer):
@@ -121,11 +125,15 @@ class CustomTourReviewSerializer(serializers.ModelSerializer):
 
 
 class CustomTourDetailSerializer(CustomTourResponseSerializer):
-    """Customer history/detail (Story 8.2)."""
+    """Customer history/detail (Story 8.2) + payment fields for approve→pay."""
 
     review_history = CustomTourReviewSerializer(
         source="reviews", many=True, read_only=True
     )
+    payment_status = serializers.SerializerMethodField()
+    payment_window_status = serializers.SerializerMethodField()
+    payment_window_deadline_at = serializers.SerializerMethodField()
+    payment_eligible = serializers.SerializerMethodField()
 
     class Meta(CustomTourResponseSerializer.Meta):
         fields = [
@@ -137,8 +145,35 @@ class CustomTourDetailSerializer(CustomTourResponseSerializer):
             "approved_at",
             "updated_at",
             "review_history",
+            "payment_status",
+            "payment_window_status",
+            "payment_window_deadline_at",
+            "payment_eligible",
         ]
         read_only_fields = fields
+
+    def get_payment_status(self, obj: CustomTour) -> str | None:
+        qs = obj.payments.order_by("-created_at", "-id")
+        if qs.filter(status=PaymentStatus.SUCCESS).exists():
+            return PaymentStatus.SUCCESS
+        payment = qs.first()
+        return payment.status if payment else None
+
+    def get_payment_window_status(self, obj: CustomTour) -> str | None:
+        try:
+            return obj.payment_window.status
+        except ObjectDoesNotExist:
+            return None
+
+    def get_payment_window_deadline_at(self, obj: CustomTour) -> str | None:
+        try:
+            deadline = obj.payment_window.deadline_at
+        except ObjectDoesNotExist:
+            return None
+        return deadline.isoformat() if deadline else None
+
+    def get_payment_eligible(self, obj: CustomTour) -> bool:
+        return is_custom_tour_payment_eligible(obj, now=timezone.now())
 
 
 class AdminCustomTourRejectSerializer(serializers.Serializer):

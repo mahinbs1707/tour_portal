@@ -11,6 +11,7 @@ from custom_tours.views import (
     CustomTourListCreateView,
     CustomTourReapplyView,
 )
+from payments.views import CustomTourPaymentAttemptView
 
 urlpatterns = [
     path("admin/", AdminCustomTourListView.as_view(), name="admin-custom-tour-list"),
@@ -34,6 +35,11 @@ urlpatterns = [
         "<uuid:tour_id>/reapply/",
         CustomTourReapplyView.as_view(),
         name="custom-tour-reapply",
+    ),
+    path(
+        "<uuid:tour_id>/payments/attempt/",
+        CustomTourPaymentAttemptView.as_view(),
+        name="custom-tour-payment-attempt",
     ),
     path("<uuid:tour_id>/", CustomTourDetailView.as_view(), name="custom-tour-detail"),
 ]

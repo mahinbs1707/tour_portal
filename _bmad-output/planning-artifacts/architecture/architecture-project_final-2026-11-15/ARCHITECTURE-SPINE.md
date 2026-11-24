@@ -893,10 +893,13 @@ The cloud hosting provider remains unbound until deployment planning.
 
 - `PaymentWindow` model and *all* writes live exclusively in `payments`.
 - On successful booking **create**, `BookingService` must call `PaymentService` to create **exactly one** `PaymentWindow` for that booking with status `NOT_OPEN` (same `transaction.atomic`); it must not write `PaymentWindow` ORM rows directly.
+- On successful custom tour **create**, `CustomTourService` must call `PaymentService.create_not_open_for_custom_tour` the same way (exactly one window; amount = estimated budget).
 - `BookingService.approve()` must call `PaymentService.open_window_for_booking(booking, approval_timestamp=…)` inside the same `transaction.atomic` to **update that existing row** to `OPEN` and set `deadline_at = approval_timestamp + 24 hours`; it must not create a second window or write `PaymentWindow` ORM rows directly.
-- Cardinality: exactly one `PaymentWindow` per booking (unique `booking_id`); extension mutates `deadline_at` on that row; history goes to audit and optionally `PaymentWindowExtension` — never a second window.
+- `CustomTourService.approve()` must call `PaymentService.open_window_for_custom_tour` the same way (private tour; never publishes to catalog).
+- Cardinality: exactly one `PaymentWindow` per booking **or** per custom tour (XOR owner; unique on the non-null owner FK); extension mutates `deadline_at` on that row; history goes to audit and optionally `PaymentWindowExtension` — never a second window.
 - Before approval, payment remains `UNPAID` (or absent attempt) and checkout is unavailable while the window is `NOT_OPEN`.
 - Rejection/cancellation paths that affect eligibility must invoke a named payments service method (or documented no-op), not leave OPEN windows dangling.
+- Amendment (2026-11-24 / PRD v1.6): Payment rows likewise XOR-own a booking or custom tour; mock attempt APIs exist for both owners.
 
 ### AD-17 — Exclusive Notification Writes + Event Catalog `[ADOPTED]`
 

@@ -11,6 +11,7 @@ vi.mock("../../services/apiClient.js", () => ({
 import {
   cancelBooking,
   createBooking,
+  findActiveBookingForPackage,
   getBooking,
   listMyBookings,
   submitPaymentAttempt,
@@ -76,5 +77,18 @@ describe("bookingsApi", () => {
         body: JSON.stringify({ outcome: "SUCCESS" }),
       },
     );
+  });
+
+  it("finds the active booking for a package and ignores cancelled/rejected", () => {
+    const bookings = [
+      { id: "b1", package_id: "pkg-1", status: "CANCELLED" },
+      { id: "b2", package_id: "pkg-1", status: "PENDING" },
+      { id: "b3", package_id: "pkg-2", status: "APPROVED" },
+      { id: "b4", package_id: "pkg-3", status: "REJECTED" },
+    ];
+    expect(findActiveBookingForPackage(bookings, "pkg-1")?.id).toBe("b2");
+    expect(findActiveBookingForPackage(bookings, "pkg-2")?.id).toBe("b3");
+    expect(findActiveBookingForPackage(bookings, "pkg-3")).toBeNull();
+    expect(findActiveBookingForPackage(bookings, "pkg-missing")).toBeNull();
   });
 });

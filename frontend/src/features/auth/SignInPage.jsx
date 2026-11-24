@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { PasswordField } from "../../components/ui/PasswordField.jsx";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { useAuth } from "./AuthContext.jsx";
@@ -27,6 +28,7 @@ const errorClass = "mt-1 text-body-sm text-[var(--color-destructive)]";
 
 export function SignInPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
   const formId = useId();
@@ -37,6 +39,7 @@ export function SignInPage() {
   const [statusError, setStatusError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const resetSuccess = Boolean(location.state?.passwordResetSuccess);
 
   const emailId = `${formId}-email`;
   const passwordId = `${formId}-password`;
@@ -100,6 +103,16 @@ export function SignInPage() {
         {messages.auth.signInSubtitle}
       </p>
 
+      {resetSuccess ? (
+        <p
+          className="mb-5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-body-sm"
+          role="status"
+          data-testid="password-reset-success"
+        >
+          {messages.auth.resetSuccessBanner}
+        </p>
+      ) : null}
+
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
         {statusError ? (
           <p
@@ -140,34 +153,26 @@ export function SignInPage() {
           ) : null}
         </div>
 
-        <div>
-          <label htmlFor={passwordId} className={labelClass}>
-            {messages.auth.password}
-          </label>
-          <input
-            id={passwordId}
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={submitting}
-            aria-invalid={Boolean(fieldErrors.password)}
-            aria-describedby={
-              fieldErrors.password ? `${passwordId}-error` : undefined
-            }
-            className={`${inputClass} ${
-              fieldErrors.password
-                ? "border-[var(--color-destructive)]"
-                : "border-[var(--color-input)]"
-            }`}
-          />
-          {fieldErrors.password ? (
-            <p id={`${passwordId}-error`} className={errorClass} role="alert">
-              {fieldErrors.password}
-            </p>
-          ) : null}
-        </div>
+        <PasswordField
+          id={passwordId}
+          name="password"
+          label={messages.auth.password}
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={submitting}
+          error={fieldErrors.password || ""}
+        />
+
+        <p className="m-0 -mt-2 text-end text-body-sm">
+          <Link
+            to="/forgot-password"
+            className="font-semibold text-[var(--color-primary)] underline-offset-2 hover:underline"
+            data-testid="forgot-password-link"
+          >
+            {messages.auth.forgotPasswordLink}
+          </Link>
+        </p>
 
         <button
           type="submit"

@@ -14,19 +14,25 @@ export function ConfirmDialog({
   role = "dialog",
   children = null,
   initialFocusRef = null,
+  confirmDisabled = false,
 }) {
   const titleId = useId();
   const bodyId = useId();
   const dialogRef = useRef(null);
   const confirmRef = useRef(null);
   const previouslyFocused = useRef(null);
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
 
   useEffect(() => {
     if (!open) {
       return undefined;
     }
     previouslyFocused.current = document.activeElement;
-    (initialFocusRef?.current || confirmRef.current)?.focus();
+    // Defer so children (e.g. textarea refs) are mounted before focus.
+    const focusTimer = window.setTimeout(() => {
+      (initialFocusRef?.current || confirmRef.current)?.focus();
+    }, 0);
 
     function focusables() {
       const root = dialogRef.current;
@@ -43,7 +49,7 @@ export function ConfirmDialog({
     function onKeyDown(event) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCancel();
+        onCancelRef.current();
         return;
       }
       if (event.key !== "Tab") {
@@ -74,6 +80,7 @@ export function ConfirmDialog({
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", onKeyDown);
       if (
         previouslyFocused.current &&
@@ -82,8 +89,10 @@ export function ConfirmDialog({
         previouslyFocused.current.focus();
       }
     };
-    // initialFocusRef is a stable ref object; only its `.current` is read on open.
-  }, [open, onCancel, initialFocusRef]);
+    // Intentionally depend only on `open` (and stable initialFocusRef).
+    // Inline onCancel/onConfirm from parents must not re-run this effect —
+    // that steals focus from textareas on every keystroke.
+  }, [open, initialFocusRef]);
 
   if (!open) {
     return null;
@@ -119,14 +128,16 @@ export function ConfirmDialog({
             type="button"
             className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 text-[var(--color-foreground)]"
             onClick={onCancel}
+            disabled={confirmDisabled}
           >
             {cancelLabel}
           </button>
           <button
             ref={confirmRef}
             type="button"
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
             onClick={onConfirm}
+            disabled={confirmDisabled}
           >
             {confirmLabel}
           </button>

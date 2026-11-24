@@ -17,7 +17,11 @@ import {
   loadBookingDraft,
   saveBookingDraft,
 } from "./bookingDraft.js";
-import { createBooking } from "./bookingsApi.js";
+import {
+  createBooking,
+  findActiveBookingForPackage,
+  listMyBookings,
+} from "./bookingsApi.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_MAX = 255;
@@ -146,6 +150,7 @@ export function BookingFormPage() {
   const [loading, setLoading] = useState(Boolean(packageId));
   const [loadError, setLoadError] = useState("");
   const [notFound, setNotFound] = useState(false);
+  const [existingBooking, setExistingBooking] = useState(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [form, setForm] = useState(emptyForm);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -197,6 +202,7 @@ export function BookingFormPage() {
       setPkg(null);
       setLoadError("");
       setNotFound(false);
+      setExistingBooking(null);
       setLoading(false);
       return undefined;
     }
@@ -205,15 +211,27 @@ export function BookingFormPage() {
     setLoading(true);
     setLoadError("");
     setNotFound(false);
+    setExistingBooking(null);
     setPkg(null);
 
     (async () => {
       try {
-        const data = await getPublishedPackage(packageId);
+        const [data, bookings] = await Promise.all([
+          getPublishedPackage(packageId),
+          listMyBookings().catch(() => []),
+        ]);
         if (generation !== loadGenerationRef.current) {
           return;
         }
         setPkg(data);
+        const active = findActiveBookingForPackage(bookings, packageId);
+        setExistingBooking(active);
+        if (active) {
+          clearBookingDraft(packageId);
+          draftHydratedRef.current = false;
+          setForm(emptyForm());
+          return;
+        }
 
         const bookable = bookableDateOptions(data.available_dates);
         const bookableIdSet = new Set(bookable.map((row) => String(row.id)));
@@ -268,6 +286,7 @@ export function BookingFormPage() {
           return;
         }
         setPkg(null);
+        setExistingBooking(null);
         if (err instanceof ApiError && err.status === 404) {
           // Confirmed unavailable — drop draft so restore cannot revive it.
           clearBookingDraft(packageId);
@@ -316,7 +335,7 @@ export function BookingFormPage() {
   function handleContinue(event) {
     event.preventDefault();
     setStatusError("");
-    if (!isBookablePackage) {
+    if (existingBooking?.id || !isBookablePackage) {
       return;
     }
     const errors = validateBookingForm(form, { bookableIds });
@@ -329,7 +348,7 @@ export function BookingFormPage() {
   }
 
   async function handleConfirm() {
-    if (submittingRef.current || !isBookablePackage) {
+    if (submittingRef.current || existingBooking?.id || !isBookablePackage) {
       return;
     }
     setStatusError("");
@@ -504,6 +523,44 @@ export function BookingFormPage() {
             data-testid="booking-form-load-error-explore"
           >
             {messages.explore.backToExplore}
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (existingBooking?.id) {
+    return (
+      <section
+        className="mx-auto max-w-lg px-[var(--space-margin-mobile)] py-12 lg:px-[var(--space-margin-desktop)]"
+        data-testid="booking-form-already-booked"
+      >
+        <h1 className="text-display-sm m-0">
+          {messages.booking.alreadyBookedTitle}
+        </h1>
+        {pkg?.title ? (
+          <p className="mt-2 font-semibold">{pkg.title}</p>
+        ) : null}
+        <p
+          className="mt-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-body-sm"
+          role="status"
+        >
+          {messages.booking.alreadyBookedBody}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            to={`/app/customer/bookings/${encodeURIComponent(existingBooking.id)}`}
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 font-semibold text-[var(--color-accent-foreground)] no-underline hover:bg-[var(--color-accent-hover)]"
+            data-testid="booking-form-view-booking"
+          >
+            {messages.booking.alreadyBookedCta}
+          </Link>
+          <Link
+            to={`/explore/${encodeURIComponent(packageId)}`}
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 font-semibold no-underline"
+            data-testid="booking-form-back-package"
+          >
+            {messages.booking.backToPackage}
           </Link>
         </div>
       </section>

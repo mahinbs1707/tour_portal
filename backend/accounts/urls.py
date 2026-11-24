@@ -1,8 +1,16 @@
-"""Auth URL routes (Stories 1.4–1.5)."""
+"""Auth URL routes (Stories 1.4–1.5 + password reset)."""
 
 from django.urls import path
 
-from accounts.views import CsrfView, LoginView, LogoutView, MeView, RegisterView
+from accounts.views import (
+    CsrfView,
+    LoginView,
+    LogoutView,
+    MeView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+    RegisterView,
+)
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="auth-register"),
@@ -10,4 +18,14 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="auth-logout"),
     path("me/", MeView.as_view(), name="auth-me"),
     path("csrf/", CsrfView.as_view(), name="auth-csrf"),
+    path(
+        "password-reset/",
+        PasswordResetRequestView.as_view(),
+        name="auth-password-reset",
+    ),
+    path(
+        "password-reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="auth-password-reset-confirm",
+    ),
 ]

@@ -3,6 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import {
+  findActiveBookingForPackage,
+  listMyBookings,
+} from "../bookings/bookingsApi.js";
 import { formatPackagePrice, getPublishedPackage } from "./packagesApi.js";
 
 /** Format API ISO calendar date for display without UTC shift. */
@@ -142,6 +146,7 @@ export function PackageDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
+  const [existingBooking, setExistingBooking] = useState(null);
   const loadGenerationRef = useRef(0);
 
   useEffect(() => {
@@ -149,6 +154,7 @@ export function PackageDetailPage() {
       setPkg(null);
       setError("");
       setNotFound(true);
+      setExistingBooking(null);
       setLoading(false);
       return undefined;
     }
@@ -157,6 +163,9 @@ export function PackageDetailPage() {
     setError("");
     setNotFound(false);
     setPkg(null);
+    setExistingBooking(null);
+
+    const isCustomerSession = isAuthenticated && role === "CUSTOMER";
 
     (async () => {
       try {
@@ -165,11 +174,28 @@ export function PackageDetailPage() {
           return;
         }
         setPkg(data);
+
+        if (isCustomerSession) {
+          try {
+            const bookings = await listMyBookings();
+            if (generation !== loadGenerationRef.current) {
+              return;
+            }
+            setExistingBooking(findActiveBookingForPackage(bookings, id));
+          } catch {
+            if (generation !== loadGenerationRef.current) {
+              return;
+            }
+            // Package detail still works; Book Now remains until create rejects.
+            setExistingBooking(null);
+          }
+        }
       } catch (err) {
         if (generation !== loadGenerationRef.current) {
           return;
         }
         setPkg(null);
+        setExistingBooking(null);
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
           setError("");
@@ -191,14 +217,15 @@ export function PackageDetailPage() {
     return () => {
       loadGenerationRef.current += 1;
     };
-  }, [id]);
+  }, [id, isAuthenticated, role]);
 
   const bookingFormPath = id
     ? `/app/bookings/new?package=${encodeURIComponent(id)}`
     : "/app/bookings/new";
   const isGuest = !isAuthenticated;
   const isCustomer = isAuthenticated && role === "CUSTOMER";
-  const canShowBookNow = isGuest || isCustomer;
+  const alreadyBooked = Boolean(existingBooking?.id);
+  const canShowBookNow = (isGuest || isCustomer) && !alreadyBooked;
   const bookNowHref = isGuest
     ? `/sign-in?next=${encodeURIComponent(bookingFormPath)}`
     : bookingFormPath;
@@ -388,7 +415,27 @@ export function PackageDetailPage() {
           />
 
           <div className="mt-10" data-testid="package-detail-booking">
-            {pkg.is_bookable && canShowBookNow ? (
+            {alreadyBooked ? (
+              <div
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3"
+                data-testid="package-detail-already-booked"
+                role="status"
+              >
+                <p className="m-0 font-semibold">
+                  {messages.explore.alreadyBookedTitle}
+                </p>
+                <p className="mt-1 m-0 text-body-sm text-[var(--color-muted-foreground)]">
+                  {messages.explore.alreadyBookedBody}
+                </p>
+                <Link
+                  to={`/app/customer/bookings/${encodeURIComponent(existingBooking.id)}`}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 font-semibold text-[var(--color-accent-foreground)] no-underline hover:bg-[var(--color-accent-hover)]"
+                  data-testid="package-detail-view-booking"
+                >
+                  {messages.explore.alreadyBookedCta}
+                </Link>
+              </div>
+            ) : pkg.is_bookable && canShowBookNow ? (
               <Link
                 to={bookNowHref}
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 font-semibold text-[var(--color-accent-foreground)] no-underline hover:bg-[var(--color-accent-hover)]"

@@ -1,11 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
+import { canPayNow } from "../bookings/canPayNow.js";
 import { formatSubmittedAt } from "../bookings/bookingFormat.js";
+import { OfflinePayBanner } from "../bookings/OfflinePayBanner.jsx";
+import { PaymentWindowCountdown } from "../bookings/PaymentWindowCountdown.jsx";
+import { useOnlineStatus } from "../bookings/useOnlineStatus.js";
 import { CustomTourStatusChip } from "./CustomTourStatusChip.jsx";
 import { formatCustomTourDateRange } from "./customTourFormat.js";
 import { getCustomTour } from "./customToursApi.js";
+
+const chipClass =
+  "inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2 py-1 text-body-sm font-semibold";
+
+function statusText(map, value) {
+  if (!value) {
+    return messages.booking.statusNotAvailable;
+  }
+  return map[value] || value;
+}
 
 function DetailRow({ label, children, testId }) {
   return (
@@ -21,11 +35,14 @@ function DetailRow({ label, children, testId }) {
 /** Customer custom tour detail — rejection guidance when present (Story 8.2). */
 export function CustomTourDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const online = useOnlineStatus();
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState("");
   const generationRef = useRef(0);
+  const paySuccessTitle = location.state?.paySuccessTitle;
 
   const load = useCallback(async () => {
     const generation = ++generationRef.current;
@@ -114,6 +131,7 @@ export function CustomTourDetailPage() {
 
   const rejectionReason = String(tour.rejection_reason || "").trim();
   const adjustments = String(tour.recommended_adjustments || "").trim();
+  const showPayNow = canPayNow(tour);
 
   return (
     <section
@@ -135,10 +153,85 @@ export function CustomTourDetailPage() {
       </h1>
       <p className="mt-2 text-headline m-0">{tour.title}</p>
 
-      <p className="mt-4 text-label text-[var(--color-muted-foreground)]">
-        {messages.customTour.statusLabel}
-      </p>
-      <CustomTourStatusChip status={tour.status} testId="custom-tour-detail-status" />
+      {paySuccessTitle ? (
+        <p
+          className="mt-6 rounded-[var(--radius-md)] border-2 border-[var(--color-success)] bg-[var(--color-status-approved-bg)] px-4 py-3 text-[0.95rem] font-semibold leading-snug text-[var(--color-status-approved-fg)] shadow-[var(--shadow-panel)]"
+          role="status"
+          data-testid="custom-tour-pay-success"
+        >
+          {messages.customTour.paySuccess.replace("{title}", String(paySuccessTitle))}
+        </p>
+      ) : null}
+
+      <ul
+        className="mt-6 m-0 flex list-none flex-wrap gap-3 p-0"
+        aria-label={messages.booking.statusesTitle}
+        data-testid="custom-tour-detail-status-chips"
+      >
+        <li className="flex flex-col gap-1">
+          <span className="text-label text-[var(--color-muted-foreground)]">
+            {messages.customTour.statusLabel}
+          </span>
+          <CustomTourStatusChip
+            status={tour.status}
+            testId="custom-tour-detail-status"
+          />
+        </li>
+        <li className="flex flex-col gap-1">
+          <span className="text-label text-[var(--color-muted-foreground)]">
+            {messages.booking.paymentStatusChip}
+          </span>
+          <span
+            className={chipClass}
+            data-testid="custom-tour-detail-payment-status"
+            data-status={tour.payment_status || ""}
+          >
+            {statusText(messages.booking.paymentStatus, tour.payment_status)}
+          </span>
+        </li>
+        <li className="flex flex-col gap-1">
+          <span className="text-label text-[var(--color-muted-foreground)]">
+            {messages.booking.windowStatusChip}
+          </span>
+          <span
+            className={chipClass}
+            data-testid="custom-tour-detail-window-status"
+            data-status={tour.payment_window_status || ""}
+          >
+            {statusText(
+              messages.booking.windowStatus,
+              tour.payment_window_status,
+            )}
+          </span>
+        </li>
+      </ul>
+
+      <PaymentWindowCountdown
+        booking={tour}
+        testIdPrefix="custom-tour-detail-countdown"
+      />
+
+      {!online && showPayNow ? (
+        <OfflinePayBanner testId="custom-tour-detail-offline-banner" />
+      ) : null}
+
+      {showPayNow ? (
+        <div className="mt-6">
+          <Link
+            to={`/app/customer/custom-tours/${encodeURIComponent(tour.id)}/pay`}
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 font-semibold text-[var(--color-accent-foreground)] no-underline hover:bg-[var(--color-accent-hover)]"
+            data-testid="custom-tour-pay-now"
+            aria-disabled={!online}
+            onClick={(event) => {
+              if (!online) {
+                event.preventDefault();
+              }
+            }}
+          >
+            {messages.booking.payNow}
+          </Link>
+        </div>
+      ) : null}
 
       <dl className="mt-8 space-y-4 border-t border-[var(--color-border)] pt-6">
         <DetailRow label={messages.customTour.destinationLabel} testId="custom-tour-detail-destination">

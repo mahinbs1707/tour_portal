@@ -43,6 +43,10 @@ export const messages = {
     emptyBody:
       "Featured packages will appear here when Admin marks published tours. Browse Explore meanwhile.",
     emptyCta: "Explore tours",
+    closeTitle: "Your next journey starts here",
+    closeBody:
+      "Browse published tours, compare dates, and request a booking when you are ready.",
+    closeCta: "Browse all tours",
     retry: "Retry",
     errors: {
       generic: "Something went wrong loading featured tours. Please try again.",
@@ -84,6 +88,9 @@ export const messages = {
   explore: {
     title: "Explore",
     subtitle: "Browse published tour packages from Tour Portal.",
+    resultsLabel: "{count} tours",
+    resultsFilteredLabel: "{count} matching tours",
+    filtersTitle: "Search & filters",
     loading: "Loading tours...",
     emptyTitle: "No tours published yet",
     emptyBody: "Check back soon, or return home while we prepare the catalog.",
@@ -126,6 +133,10 @@ export const messages = {
     detailCancellationTitle: "Cancellation policy",
     detailAdditionalTitle: "Additional information",
     bookNow: "Book Now",
+    alreadyBookedTitle: "You already booked this package",
+    alreadyBookedBody:
+      "You have an open booking for this tour. Open it to track status or cancel if it is still pending.",
+    alreadyBookedCta: "View your booking",
     bookingUnavailable:
       "This package is not available for booking right now.",
     bookingUnavailableNoDates:
@@ -145,6 +156,10 @@ export const messages = {
       "Choose a published package from Explore before starting a booking request.",
     noBookableDates:
       "No qualifying travel dates are available for booking on this package.",
+    alreadyBookedTitle: "You already booked this package",
+    alreadyBookedBody:
+      "You already have an open booking for this tour, so a new request cannot be submitted. Open your existing booking instead.",
+    alreadyBookedCta: "View your booking",
     backToPackage: "Back to package",
     packageLabel: "Package",
     dateLabel: "Preferred travel date",
@@ -219,20 +234,36 @@ export const messages = {
     paymentDeadlineLabel: "Payment deadline",
     paySuccess:
       "Payment for booking {reference} was recorded successfully. Thank you.",
-    checkoutTitle: "Mock checkout",
+    checkoutTitle: "Checkout",
     checkoutSubtitle:
-      "Choose a simulated outcome. No real card details are collected.",
-    checkoutMockLegend: "Mock payment — no real charges.",
+      "Review your booking and complete payment. This is a mock checkout — no real card is charged.",
+    checkoutMockLegend: "Demo checkout — no real charges. Card fields stay on this device only.",
     checkoutReference: "Booking {reference}",
+    checkoutOrderTitle: "Order summary",
+    checkoutPaymentTitle: "Payment details",
+    checkoutPackageLabel: "Tour",
+    checkoutTravelersLabel: "Travelers",
+    checkoutTravelDateLabel: "Travel date",
     checkoutAmount: "Amount due",
-    simulateSuccess: "Simulate success",
+    checkoutCardNameLabel: "Name on card",
+    checkoutCardNumberLabel: "Card number",
+    checkoutCardExpiryLabel: "Expiry (MM/YY)",
+    checkoutCardCvcLabel: "CVC",
+    checkoutCardNamePlaceholder: "Full name",
+    checkoutCardNumberPlaceholder: "4242 4242 4242 4242",
+    checkoutCardExpiryPlaceholder: "12/30",
+    checkoutCardCvcPlaceholder: "123",
+    checkoutPayCta: "Pay {amount}",
+    checkoutDemoTools: "Demo outcomes",
+    simulateSuccess: "Pay successfully",
     simulateFailed: "Simulate failure",
     simulateCancelled: "Cancel attempt",
-    checkoutSubmitting: "Recording…",
+    checkoutSubmitting: "Processing…",
     checkoutBackToDetail: "Back to booking details",
     checkoutIneligibleTitle: "Payment is not available",
     checkoutIneligibleBody:
       "This booking is not eligible for payment right now. Check the statuses on the booking detail page.",
+    checkoutCardIncomplete: "Enter the mock card details to continue.",
     checkoutErrors: {
       generic: "We could not record this payment attempt. Please try again.",
       alreadyPaid: "This booking already has a successful payment.",
@@ -357,6 +388,13 @@ export const messages = {
     detailNotFoundBody:
       "This submission does not exist or is not available to your account.",
     backToHistory: "Back to My custom tours",
+    checkoutTitle: "Checkout",
+    checkoutSubtitle:
+      "Review your custom tour and complete payment. This is a mock checkout — no real card is charged.",
+    checkoutBackToDetail: "Back to custom tour details",
+    checkoutIneligibleBody:
+      "This custom tour is not eligible for payment right now. Check the statuses on the detail page.",
+    paySuccess: "Payment for custom tour “{title}” was recorded successfully.",
     rejectionTitle: "Reason for rejection",
     adjustmentsTitle: "Recommended adjustments",
     reapplyEnabledHint:
@@ -714,7 +752,27 @@ export const messages = {
     fullName: "Full name",
     email: "Email",
     password: "Password",
+    newPassword: "New password",
     confirmPassword: "Confirm password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    showPasswordShort: "Show",
+    hidePasswordShort: "Hide",
+    forgotPasswordLink: "Forgot password?",
+    forgotTitle: "Forgot password",
+    forgotSubtitle:
+      "Enter your account email. We will prepare a reset link. MVP uses mock delivery (no email/SMS).",
+    forgotSubmit: "Send reset link",
+    forgotSubmitting: "Preparing reset…",
+    forgotMockNote: "MVP has no email/SMS. Use this mock reset link locally.",
+    forgotOpenResetLink: "Open reset link",
+    resetTitle: "Choose a new password",
+    resetSubtitle: "Enter and confirm your new password to finish resetting.",
+    resetSubmit: "Update password",
+    resetSubmitting: "Updating…",
+    resetSuccessBanner:
+      "Password updated. Sign in with your new password.",
+    backToSignIn: "Back to Sign in",
     submitSignUp: "Sign up",
     submitSignIn: "Sign in",
     submitting: "Creating account…",
@@ -736,6 +794,7 @@ export const messages = {
       confirmRequired: "Confirm your password.",
       confirmMismatch: "Password and confirm password must match.",
       invalidCredentials: "Invalid email or password.",
+      resetInvalid: "This password reset link is invalid or has expired.",
       generic: "Something went wrong. Please try again.",
     },
   },

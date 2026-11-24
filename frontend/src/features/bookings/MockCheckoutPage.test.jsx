@@ -36,7 +36,16 @@ const ELIGIBLE = {
   payment_window_deadline_at: "2099-12-01T06:00:00Z",
   tour_date: "2099-06-15",
   travelers: 2,
+  amount_due: "12500.00",
+  currency: "BDT",
 };
+
+async function fillMockCard(user) {
+  await user.type(screen.getByTestId("mock-checkout-card-name"), "Casey Customer");
+  await user.type(screen.getByTestId("mock-checkout-card-number"), "4242424242424242");
+  await user.type(screen.getByTestId("mock-checkout-card-expiry"), "1230");
+  await user.type(screen.getByTestId("mock-checkout-card-cvc"), "123");
+}
 
 function renderCheckout() {
   return render(
@@ -60,20 +69,23 @@ afterEach(() => {
 });
 
 describe("MockCheckoutPage (Story 7.2)", () => {
-  it("shows mock legend and simulate buttons when eligible", async () => {
+  it("shows checkout form, legend, and pay controls when eligible", async () => {
     renderCheckout();
     expect(await screen.findByTestId("mock-checkout-legend")).toHaveTextContent(
       messages.booking.checkoutMockLegend,
     );
+    expect(screen.getByTestId("mock-checkout-card-number")).toBeInTheDocument();
     expect(screen.getByTestId("mock-checkout-simulate-success")).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByTestId("mock-checkout-amount")).toHaveTextContent("12,500.00 BDT");
   });
 
-  it("navigates to detail after simulate SUCCESS", async () => {
+  it("navigates to detail after successful pay", async () => {
     const user = userEvent.setup();
     attemptMock.mockResolvedValue({ status: "SUCCESS" });
     renderCheckout();
-    await user.click(await screen.findByTestId("mock-checkout-simulate-success"));
+    await screen.findByTestId("mock-checkout-simulate-success");
+    await fillMockCard(user);
+    await user.click(screen.getByTestId("mock-checkout-simulate-success"));
     await waitFor(() =>
       expect(navigateMock).toHaveBeenCalledWith("/app/customer/bookings/b-2", {
         replace: true,
@@ -99,8 +111,10 @@ describe("MockCheckoutPage (Story 7.2)", () => {
       .mockResolvedValueOnce({ ...ELIGIBLE, payment_status: "FAILED" })
       .mockResolvedValueOnce({ ...ELIGIBLE, payment_status: "FAILED" });
     renderCheckout();
-    await user.click(await screen.findByTestId("mock-checkout-simulate-failed"));
-    await user.click(await screen.findByTestId("mock-checkout-simulate-success"));
+    await screen.findByTestId("mock-checkout-simulate-failed");
+    await user.click(screen.getByTestId("mock-checkout-simulate-failed"));
+    await fillMockCard(user);
+    await user.click(screen.getByTestId("mock-checkout-simulate-success"));
     await waitFor(() => expect(navigateMock).toHaveBeenCalled());
     expect(attemptMock).toHaveBeenCalledTimes(2);
   });

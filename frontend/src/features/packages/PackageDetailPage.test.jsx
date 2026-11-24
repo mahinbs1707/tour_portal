@@ -11,10 +11,12 @@ const {
   ensureCsrfMock,
   meMock,
   getPublishedPackageMock,
+  listMyBookingsMock,
 } = vi.hoisted(() => ({
   ensureCsrfMock: vi.fn().mockResolvedValue(undefined),
   meMock: vi.fn(),
   getPublishedPackageMock: vi.fn(),
+  listMyBookingsMock: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("../../services/apiClient.js", async () => {
@@ -34,6 +36,14 @@ vi.mock("./packagesApi.js", async () => {
     ...actual,
     getPublishedPackage: getPublishedPackageMock,
     listPublishedPackages: vi.fn().mockResolvedValue({ count: 0, results: [] }),
+  };
+});
+
+vi.mock("../bookings/bookingsApi.js", async () => {
+  const actual = await vi.importActual("../bookings/bookingsApi.js");
+  return {
+    ...actual,
+    listMyBookings: listMyBookingsMock,
   };
 });
 
@@ -143,6 +153,7 @@ afterEach(() => {
 beforeEach(() => {
   mockMatchMedia(true);
   getPublishedPackageMock.mockResolvedValue(BOOKABLE_PKG);
+  listMyBookingsMock.mockResolvedValue([]);
 });
 
 describe("PackageDetailPage", () => {
@@ -190,6 +201,26 @@ describe("PackageDetailPage", () => {
     expect(cta).toHaveAttribute(
       "href",
       `/app/bookings/new?package=${encodeURIComponent(BOOKABLE_PKG.id)}`,
+    );
+  });
+
+  it("Customer with an open booking sees already-booked instead of Book Now", async () => {
+    listMyBookingsMock.mockResolvedValue([
+      {
+        id: "bk-existing-1",
+        package_id: BOOKABLE_PKG.id,
+        status: "PENDING",
+        reference: "ABCDEF123456",
+      },
+    ]);
+    renderDetail(`/explore/${BOOKABLE_PKG.id}`, { asCustomer: true });
+    expect(
+      await screen.findByTestId("package-detail-already-booked"),
+    ).toHaveTextContent(messages.explore.alreadyBookedTitle);
+    expect(screen.queryByTestId("package-detail-book-now")).not.toBeInTheDocument();
+    expect(screen.getByTestId("package-detail-view-booking")).toHaveAttribute(
+      "href",
+      "/app/customer/bookings/bk-existing-1",
     );
   });
 

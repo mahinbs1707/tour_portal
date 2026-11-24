@@ -44,7 +44,8 @@ class CustomTourListCreateView(APIView):
     def get(self, request):
         tours = (
             _owned_tours(request.user)
-            .prefetch_related("reviews")
+            .select_related("payment_window")
+            .prefetch_related("reviews", "payments")
             .order_by("-created_at", "-id")
         )
         return Response(CustomTourDetailSerializer(tours, many=True).data)

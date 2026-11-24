@@ -127,3 +127,33 @@ class MeSerializer(serializers.ModelSerializer):
             "is_superuser",
         )
         read_only_fields = fields
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Request a password-reset token (anti-enumeration: always succeeds)."""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value: str) -> str:
+        return User.objects.normalize_email(value)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Confirm reset with uid + token + new password."""
+
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    confirm_password = serializers.CharField(
+        write_only=True, style={"input_type": "password"}
+    )
+
+    def validate_password(self, value: str) -> str:
+        return validate_password_policy(value)
+
+    def validate(self, attrs):
+        if attrs.get("password") != attrs.get("confirm_password"):
+            raise serializers.ValidationError(
+                {"confirm_password": "Password and confirm password must match."}
+            )
+        return attrs

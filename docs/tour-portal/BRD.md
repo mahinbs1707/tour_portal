@@ -5,9 +5,9 @@
 |---|---|
 | Document type | BRD |
 | Product | Tour Portal |
-| Version | 1.5 Draft |
+| Version | 1.6 Draft |
 | Status | Draft for review |
-| Date | 2026-11-15 |
+| Date | 2026-11-24 |
 | Owner | Product / Business |
 | Related Document | [PRD.md](./PRD.md) |
 
@@ -19,7 +19,11 @@ Tour Portal is a role-based web platform where travelers discover and book curat
 
 Guests browse publicly. Customers register via public Sign up. Admins use a predefined/seeded account. Catalog and custom-tour start dates must be at least 7 calendar days ahead. Status changes are communicated through in-app notifications.
 
+**Product vision (v1.6):** Catalog bookings and private custom tours both use post-approval mock payment (24-hour window). Custom tours never auto-publish to the catalog; payment settles the estimated budget on the private request.
+
 **Final catalog booking workflow:** (1) Customer submits → booking `PENDING`; (2) Admin approves or rejects (**rejection reason required**, shown to Customer); (3) if `REJECTED`, no payment; (4) if `APPROVED`, payment starts `UNPAID`, Customer can checkout within **24 hours from approval**; (5) mock payment → `SUCCESS` / `FAILED` / `CANCELLED` (retry while window open); happy path payment `UNPAID` → `SUCCESS`; (6) booking status, payment status, and payment-window state shown separately. Window expiry does not auto-cancel the booking. Admin **reopen** keeps the original deadline; **extend** is required to change it.
+
+**Custom tour payment workflow (v1.6):** (1) Customer submits → custom tour `PENDING` + payment window `NOT_OPEN`; (2) Admin approves or rejects; (3) on approve → window `OPEN` for 24 hours (amount = estimated budget); (4) Customer Pay now → mock checkout; (5) tour remains private (never catalog).
 
 ---
 
@@ -49,7 +53,7 @@ Operators need one place to publish packages, define travel dates, review custom
 
 | Stakeholder | Interest |
 |---|---|
-| Traveler / Customer | Discover packages, book (≥7 days ahead), pay after approval, cancel only while pending, custom tours + reapply |
+| Traveler / Customer | Discover packages, book (≥7 days ahead), pay after approval (bookings + custom tours), cancel only while pending, custom tours + reapply |
 | Portal Admin | Packages/dates, approve/reject, reopen expired payment windows, custom-tour review |
 | Business owner | Bookings, conversion, operational efficiency |
 | Support / operations | Clear rejection reasons, reapply cycles, unpaid-but-approved follow-up |
@@ -67,8 +71,8 @@ Operators need one place to publish packages, define travel dates, review custom
 - All guest discovery features
 - Book published packages with Admin-defined dates ≥7 calendar days ahead
 - Cancel own bookings only while PENDING (before Admin approval)
-- Pay via mock checkout only after Admin approval, within 24 hours
-- Create/submit custom tours with start date ≥7 calendar days ahead; reapply when enabled
+- Pay via mock checkout only after Admin approval, within 24 hours (catalog bookings and approved custom tours)
+- Create/submit custom tours with start date ≥7 calendar days ahead; reapply when enabled; pay estimated budget after approval while private
 - View own history; receive in-app notifications
 
 ### 5.3 Admin (predefined account — not public Sign up)
@@ -143,7 +147,7 @@ Aligned with PRD §2.2: real payment gateway charging (Stripe deferred), seat in
 |---|---|---|
 | A-1 | Public Sign up = Customer only; Admin via secure seed/env provisioning | Auth and ops model change |
 | A-2 | Password format: min 8 chars + letter + number; confirm password required | Validation UX changes |
-| A-3 | Email verification / password reset deferred | Account recovery later |
+| A-3 | Email verification deferred; password reset via mock link in MVP | Real email/SMS recovery later |
 | A-4 | Packages support multiple available travel dates | Booking form/date model |
 | A-5 | **Decided:** mock payment after Admin approval; 24h window; no auto-cancel on unpaid expiry | Gateway / ops process |
 | A-6 | In-app notifications only (no email/SMS) | Comms channel changes |

@@ -32,7 +32,9 @@ class AdminCustomTourPagination(PageNumberPagination):
 
 
 def _all_custom_tours():
-    return CustomTour.objects.select_related("customer")
+    return CustomTour.objects.select_related("customer", "payment_window").prefetch_related(
+        "payments"
+    )
 
 
 class AdminCustomTourListView(ListAPIView):

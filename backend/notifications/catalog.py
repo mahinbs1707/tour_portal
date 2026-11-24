@@ -36,18 +36,32 @@ def format_notification_message(*, event_key: str, payload: dict[str, Any] | Non
         ),
         "payment.success": (
             f"Mock payment succeeded for booking{f' {ref}' if ref else ''}."
+            if ref
+            else (
+                f"Mock payment succeeded for custom tour{f' “{title}”' if title else ''}."
+            )
         ),
         "payment.failed": (
             f"Mock payment failed for booking{f' {ref}' if ref else ''}. You can retry while the window is open."
+            if ref
+            else (
+                f"Mock payment failed for custom tour{f' “{title}”' if title else ''}. "
+                "You can retry while the window is open."
+            )
         ),
         "payment.window_expired": (
             f"Payment window expired for booking{f' {ref}' if ref else ''}."
+            if ref
+            else (
+                f"Payment window expired for custom tour{f' “{title}”' if title else ''}."
+            )
         ),
         "custom_tour.submitted": (
             f"Custom tour{f' “{title}”' if title else ''} was submitted and is pending Admin review."
         ),
         "custom_tour.approved": (
-            f"Custom tour{f' “{title}”' if title else ''} was approved."
+            f"Custom tour{f' “{title}”' if title else ''} was approved. "
+            "You have 24 hours to complete mock payment."
         ),
         "custom_tour.rejected": (
             f"Custom tour{f' “{title}”' if title else ''} was rejected."
@@ -87,14 +101,23 @@ def resolve_customer_deeplink(
         if raw:
             booking_id = str(raw)
 
+    custom_tour_id = None
+    if entity_type == "custom_tour":
+        custom_tour_id = str(entity_id).split(":", 1)[0]
+    elif data.get("custom_tour_id"):
+        custom_tour_id = str(data.get("custom_tour_id"))
+
     if event_key in ("booking.approved", "payment.failed") and booking_id:
         return f"/app/customer/bookings/{booking_id}/pay"
+    if event_key in ("custom_tour.approved", "payment.failed") and custom_tour_id and not booking_id:
+        return f"/app/customer/custom-tours/{custom_tour_id}/pay"
 
     if entity_type == "booking" and booking_id:
         return f"/app/customer/bookings/{booking_id}"
-    if entity_type == "custom_tour":
-        tour_id = str(entity_id).split(":", 1)[0]
-        return f"/app/customer/custom-tours/{tour_id}"
+    if entity_type == "custom_tour" and custom_tour_id:
+        return f"/app/customer/custom-tours/{custom_tour_id}"
     if entity_type == "payment" and booking_id:
         return f"/app/customer/bookings/{booking_id}"
+    if entity_type == "payment" and custom_tour_id:
+        return f"/app/customer/custom-tours/{custom_tour_id}"
     return None

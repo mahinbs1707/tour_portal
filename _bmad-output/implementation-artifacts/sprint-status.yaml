@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-16-2026 00:41
-last_updated: 11-19-2026 23:45
+last_updated: 11-24-2026 00:10
 project: project_final
 project_key: NOKEY
 tracking_system: file-system
@@ -71,11 +71,11 @@ development_status:
   5-3-booking-confirmation-history-detail-and-cancel-pending: done
   epic-5-retrospective: done
 
-  epic-6: in-progress
-  6-1-admin-bookings-list-filter-and-detail: review
-  6-2-approve-booking-and-open-payment-window: review
-  6-3-reject-booking-with-mandatory-reason: review
-  6-4-reopen-and-extend-payment-window: review
+  epic-6: done
+  6-1-admin-bookings-list-filter-and-detail: done
+  6-2-approve-booking-and-open-payment-window: done
+  6-3-reject-booking-with-mandatory-reason: done
+  6-4-reopen-and-extend-payment-window: done
   epic-6-retrospective: optional
 
   epic-7: done
@@ -91,10 +91,10 @@ development_status:
   8-4-customer-reapply-flow: done
   epic-8-retrospective: optional
 
-  epic-9: in-progress
-  9-1-notification-center-inbox: review
-  9-2-customer-home-dashboard-aggregates: review
-  9-3-admin-operational-dashboard: review
+  epic-9: done
+  9-1-notification-center-inbox: done
+  9-2-customer-home-dashboard-aggregates: done
+  9-3-admin-operational-dashboard: done
   epic-9-retrospective: optional
 
 # Sprint-planning safeguards (from approved epics.md + readiness CONCERNS proceed).

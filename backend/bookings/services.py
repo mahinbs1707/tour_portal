@@ -38,6 +38,9 @@ PAYMENT_WINDOW_REOPEN_AUDIT_ACTION = "payment_window.reopen"
 PAYMENT_WINDOW_EXTEND_AUDIT_ACTION = "payment_window.extend"
 # Same cap as ``additional_requirements`` (Story 6.3, decision 2A).
 REJECTION_REASON_MAX_LENGTH = 2000
+# Active = still "has a booking" for this package; cancel/reject allow rebook.
+ACTIVE_BOOKING_STATUSES = (BookingStatus.PENDING, BookingStatus.APPROVED)
+ALREADY_BOOKED_PACKAGE_MESSAGE = "You already have a booking for this package."
 
 
 class BookingNotCancellable(Exception):
@@ -112,6 +115,7 @@ class BookingService:
         }
 
         with transaction.atomic():
+            self._assert_no_active_booking(customer=customer, package=package)
             booking = self._create_booking_row(customer=customer, package=package, available_date=available_date, payload=payload)
             self.payments.create_not_open_for_booking(booking)
             notification = self.notifications.create(
@@ -387,6 +391,23 @@ class BookingService:
             "payment_window_deadline_at": deadline.isoformat() if deadline else None,
         }
 
+    @staticmethod
+    def _assert_no_active_booking(*, customer, package: TourPackage) -> None:
+        """Reject a second PENDING/APPROVED booking for the same package."""
+        exists = (
+            Booking.objects.select_for_update()
+            .filter(
+                customer=customer,
+                package=package,
+                status__in=ACTIVE_BOOKING_STATUSES,
+            )
+            .exists()
+        )
+        if exists:
+            raise ValidationError(
+                {"package_id": [ALREADY_BOOKED_PACKAGE_MESSAGE]}
+            )
+
     def _create_booking_row(
         self,
         *,
@@ -415,7 +436,12 @@ class BookingService:
                         additional_requirements=payload["additional_requirements"],
                     )
             except IntegrityError as exc:
-                if "reference" not in str(exc).lower():
+                message = str(exc).lower()
+                if "uniq_active_booking_customer_package" in message:
+                    raise ValidationError(
+                        {"package_id": [ALREADY_BOOKED_PACKAGE_MESSAGE]}
+                    ) from exc
+                if "reference" not in message:
                     raise
                 last_error = exc
                 continue

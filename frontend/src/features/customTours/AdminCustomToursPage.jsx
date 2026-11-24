@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { messages } from "../../i18n/messages.js";
 import { ApiError } from "../../services/apiClient.js";
+import { BookingStatusChips } from "../bookings/BookingStatusChips.jsx";
 import { formatSubmittedAt } from "../bookings/bookingFormat.js";
-import { CustomTourStatusChip } from "./CustomTourStatusChip.jsx";
 import { formatCustomTourDateRange } from "./customTourFormat.js";
 import { listAdminCustomTours } from "./adminCustomToursApi.js";
 
@@ -140,8 +140,15 @@ export function AdminCustomToursPage() {
                   {formatCustomTourDateRange(tour.start_date, tour.end_date)} ·{" "}
                   {formatSubmittedAt(tour.created_at)}
                 </p>
-                <div className="mt-2">
-                  <CustomTourStatusChip status={tour.status} />
+                <div className="mt-3">
+                  <BookingStatusChips
+                    booking={{
+                      status: tour.status,
+                      payment_status: tour.payment_status,
+                      payment_window_status: tour.payment_window_status,
+                    }}
+                    testIdPrefix={`admin-custom-tour-list-${tour.id}`}
+                  />
                 </div>
               </Link>
             </li>

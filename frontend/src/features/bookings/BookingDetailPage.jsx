@@ -209,7 +209,7 @@ export function BookingDetailPage() {
 
       {paySuccess ? (
         <p
-          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-body-sm"
+          className="mt-6 rounded-[var(--radius-md)] border-2 border-[var(--color-success)] bg-[var(--color-status-approved-bg)] px-4 py-3 text-[0.95rem] font-semibold leading-snug text-[var(--color-status-approved-fg)] shadow-[var(--shadow-panel)]"
           role="status"
           data-testid="booking-pay-success"
         >

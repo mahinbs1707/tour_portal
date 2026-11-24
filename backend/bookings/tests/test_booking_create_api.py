@@ -384,3 +384,67 @@ class BookingCreateAPITests(APITestCase):
         )
         self.assertEqual(Booking.objects.filter(available_date=self.available_date).count(), 2)
         self.assertNotEqual(first.data["reference"], second.reference)
+
+    def test_same_customer_cannot_book_same_package_twice(self):
+        self._login_customer()
+        first = self.client.post(
+            "/api/bookings/",
+            self._valid_payload(),
+            format="json",
+            **self._headers(),
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+
+        other_date = AvailableDate.objects.create(
+            package=self.package,
+            tour_date=self.far_date + timedelta(days=14),
+            is_active=True,
+        )
+        second = self.client.post(
+            "/api/bookings/",
+            self._valid_payload(available_date_id=str(other_date.id)),
+            format="json",
+            **self._headers(),
+        )
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            second.data["package_id"],
+            ["You already have a booking for this package."],
+        )
+        self.assertEqual(
+            Booking.objects.filter(customer=self.customer, package=self.package).count(),
+            1,
+        )
+
+    def test_customer_can_rebook_after_cancel(self):
+        self._login_customer()
+        first = self.client.post(
+            "/api/bookings/",
+            self._valid_payload(),
+            format="json",
+            **self._headers(),
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        cancel = self.client.post(
+            f"/api/bookings/{first.data['id']}/cancel/",
+            format="json",
+            **self._headers(),
+        )
+        self.assertEqual(cancel.status_code, status.HTTP_200_OK)
+
+        other_date = AvailableDate.objects.create(
+            package=self.package,
+            tour_date=self.far_date + timedelta(days=21),
+            is_active=True,
+        )
+        second = self.client.post(
+            "/api/bookings/",
+            self._valid_payload(available_date_id=str(other_date.id)),
+            format="json",
+            **self._headers(),
+        )
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            Booking.objects.filter(customer=self.customer, package=self.package).count(),
+            2,
+        )

@@ -16,6 +16,8 @@ from custom_tours.services import CustomTourReapplyNotAllowed, CustomTourService
 from notifications.models import Notification
 from packages.models import TourPackage
 from packages.validators import min_bookable_date, today_in_business_tz
+from payments.models import PaymentWindowStatus
+from payments.services import PaymentService
 
 User = get_user_model()
 
@@ -65,6 +67,10 @@ class AdminCustomTourAPITests(APITestCase):
             estimated_budget=Decimal("10000"),
             currency="BDT",
         )
+        payments = PaymentService()
+        payments.create_not_open_for_custom_tour(self.pending)
+        payments.create_not_open_for_custom_tour(self.too_soon)
+
     def _headers(self):
         cookie = self.client.cookies.get("csrftoken")
         token = cookie.value if cookie else self.csrf_token
@@ -89,10 +95,16 @@ class AdminCustomTourAPITests(APITestCase):
             **self._headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["status"], CustomTourStatus.APPROVED)
+        body = response.json()
+        self.assertEqual(body["status"], CustomTourStatus.APPROVED)
+        self.assertEqual(body["payment_window_status"], PaymentWindowStatus.OPEN)
+        self.assertTrue(body["payment_eligible"])
         self.pending.refresh_from_db()
         self.assertIsNotNone(self.pending.approved_at)
         self.assertEqual(TourPackage.objects.count(), before_packages)
+        self.assertEqual(
+            self.pending.payment_window.status, PaymentWindowStatus.OPEN
+        )
         self.assertTrue(
             Notification.objects.filter(
                 event_key="custom_tour.approved",

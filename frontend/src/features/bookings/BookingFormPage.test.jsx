@@ -26,11 +26,13 @@ const {
   meMock,
   getPublishedPackageMock,
   createBookingMock,
+  listMyBookingsMock,
 } = vi.hoisted(() => ({
   ensureCsrfMock: vi.fn().mockResolvedValue(undefined),
   meMock: vi.fn(),
   getPublishedPackageMock: vi.fn(),
   createBookingMock: vi.fn(),
+  listMyBookingsMock: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -61,9 +63,14 @@ vi.mock("../packages/packagesApi.js", async () => {
   };
 });
 
-vi.mock("./bookingsApi.js", () => ({
-  createBooking: (...args) => createBookingMock(...args),
-}));
+vi.mock("./bookingsApi.js", async () => {
+  const actual = await vi.importActual("./bookingsApi.js");
+  return {
+    ...actual,
+    createBooking: (...args) => createBookingMock(...args),
+    listMyBookings: (...args) => listMyBookingsMock(...args),
+  };
+});
 
 const PKG_ID = "pkg-book-1";
 const FAR_DATE = "2099-06-15";
@@ -155,6 +162,7 @@ afterEach(() => {
 beforeEach(() => {
   mockMatchMedia(true);
   getPublishedPackageMock.mockResolvedValue(BOOKABLE_PKG);
+  listMyBookingsMock.mockResolvedValue([]);
   createBookingMock.mockResolvedValue({
     id: "11111111-2222-3333-4444-555555555555",
     reference: "ABCDEF123456",
@@ -211,6 +219,27 @@ describe("BookingFormPage", () => {
       .filter(Boolean);
     expect(optionValues).toEqual([FAR_DATE_ID]);
     expect(optionValues).not.toContain("date-near");
+  });
+
+  it("blocks the form when the customer already has an open booking", async () => {
+    listMyBookingsMock.mockResolvedValue([
+      {
+        id: "bk-open-1",
+        package_id: PKG_ID,
+        status: "APPROVED",
+        reference: "OPENBOOK1234",
+      },
+    ]);
+    renderForm();
+    expect(
+      await screen.findByTestId("booking-form-already-booked"),
+    ).toHaveTextContent(messages.booking.alreadyBookedTitle);
+    expect(screen.queryByTestId("booking-form")).not.toBeInTheDocument();
+    expect(screen.getByTestId("booking-form-view-booking")).toHaveAttribute(
+      "href",
+      "/app/customer/bookings/bk-open-1",
+    );
+    expect(createBookingMock).not.toHaveBeenCalled();
   });
 
   it("blocks continue with field errors and does not call create API", async () => {

@@ -5,9 +5,9 @@
 |---|---|
 | Product Name | Tour Portal |
 | Document Type | Product Requirements Document |
-| Version | 1.5 |
+| Version | 1.6 |
 | Status | Draft for Review |
-| Date | 15 November 2026 |
+| Date | 24 November 2026 |
 | Related Document | [BRD.md](./BRD.md) |
 | Target Platform | Responsive Web Application |
 | Primary Roles | Guest, Customer, Admin |
@@ -22,6 +22,8 @@ Tour Portal is a web-based tour discovery and management platform that allows tr
 
 The platform provides an administrative interface through which authorized administrators can manage tour packages, define available travel dates, review booking requests, and evaluate custom tour submissions.
 
+**Product vision (v1.6):** After Admin approval, both **catalog bookings** and **private custom tours** use the same mock payment experience — a 24-hour payment window, separate payment/window statuses, and Pay now → mock checkout — without publishing custom tours to the public catalog.
+
 The system has two primary authenticated roles: Customer and Admin. Guests can access public tour discovery features without registering.
 
 ## 1.2 Product Objectives
@@ -32,8 +34,8 @@ The product aims to:
 2. Allow customers to search and filter available tours.
 3. Provide AI-powered recommendations based on customer preferences.
 4. Enable customers to submit booking requests for published tour packages.
-5. Demonstrate a mock payment checkout experience after Admin approval (24-hour payment window), designed for a future Stripe swap-in.
-6. Allow customers to create and submit personalized tour plans.
+5. Demonstrate a mock payment checkout experience after Admin approval (24-hour payment window) for catalog bookings **and** approved custom tours, designed for a future Stripe swap-in.
+6. Allow customers to create and submit personalized tour plans, then pay the estimated budget after Admin approval while the plan stays private.
 7. Provide administrators with tools to manage tour packages and review customer requests.
 8. Provide transparent booking and custom-tour statuses through in-app notifications.
 9. Maintain appropriate role-based access and customer data ownership.
@@ -55,11 +57,12 @@ Guests cannot submit booking requests, create custom tour submissions, or access
 An authenticated traveler who can:
 - Access all public discovery features.
 - Submit booking requests for published tour packages.
-- Complete mock payment within 24 hours after Admin approval (while the payment window is open).
+- Complete mock payment within 24 hours after Admin approval (while the payment window is open) for catalog bookings.
+- Complete mock payment within 24 hours after Admin approval of a custom tour (amount = estimated budget; tour stays private).
 - Cancel booking requests only before Admin approval (while `PENDING`).
 - Create and submit custom tour plans.
 - View their own bookings and custom tour submissions.
-- Track approval and rejection statuses.
+- Track approval, rejection, payment, and payment-window statuses.
 - Receive in-app notifications.
 - Edit and resubmit rejected custom tour plans when reapplication is enabled.
 
@@ -185,7 +188,7 @@ FR-AUTH-19: Invalid Sign in attempts shall not create an authenticated session.
 
 FR-AUTH-20: Authentication and authorization checks shall be enforced on the server side.
 
-[ASSUMPTION] Email verification, password reset, and account recovery are deferred from the MVP.
+[ASSUMPTION] Email verification remains deferred from the MVP. **Password reset is available in MVP via mock delivery** (signed uid/token link returned when `DEBUG` is on — no SMTP/SMS). Real email delivery is a post-MVP swap.
 
 **Additional validation acceptance (incorrect attempts)**
 - Empty required fields block submit; no account or session is created.
@@ -509,9 +512,9 @@ The MVP shall include a **simulated payment workflow** to demonstrate the custom
 
 FR-PAY-01: Customers must complete payment within **24 hours** of Admin approval.
 
-FR-PAY-01a: The countdown starts from the booking’s **approval timestamp**.
+FR-PAY-01a: The countdown starts from the booking’s **approval timestamp** (or the custom tour’s approval timestamp for custom-tour payment).
 
-FR-PAY-01b: The payment option remains available during the 24-hour period while the booking is `APPROVED` and the payment window is open.
+FR-PAY-01b: The payment option remains available during the 24-hour period while the booking **or approved custom tour** is `APPROVED` and the payment window is open.
 
 FR-PAY-01c: If payment is not completed within 24 hours:
 - The payment window **expires**.
@@ -535,7 +538,7 @@ FR-PAY-02: The mock checkout shall simulate at least these payment attempt outco
 - Failed payment (`FAILED`).
 - Cancelled payment attempt (`CANCELLED`).
 
-FR-PAY-03: Payment transactions and payment statuses shall be stored in a **separate payment record**, linked to the related booking, and shall not be embedded as the booking record itself.
+FR-PAY-03: Payment transactions and payment statuses shall be stored in a **separate payment record**, linked to the related **booking or custom tour** (exactly one owner), and shall not be embedded as the parent record itself.
 
 FR-PAY-04: The system shall **not** collect or process real payment card numbers, bank credentials, or other real payment instruments in the MVP.
 
@@ -654,6 +657,8 @@ FR-CT-14: Admins shall have access to custom tour submissions for administrative
 
 FR-CT-15: Approval of a custom tour shall not automatically publish it in the public catalog.
 
+FR-CT-15a: On approval, the system shall open a **24-hour payment window** on the same custom-tour record (amount = estimated budget / currency). Customers may use mock Pay now while the window is `OPEN` and payment is not `SUCCESS`.
+
 FR-CT-16: Approved custom tours shall remain private to their respective owners.
 
 ## 9.4 Custom Tour Status
@@ -694,7 +699,9 @@ FR-CT-28: Each resubmission shall create a new review cycle.
 
 FR-CT-29: Previous review decisions and rejection information shall be retained in the history.
 
-FR-CT-30: After approval, the custom tour shall remain private and shall not become a public catalog package.
+FR-CT-30: After approval, the custom tour shall remain private and shall not become a public catalog package. Payment after approval does **not** publish the tour.
+
+FR-CT-31: Customers shall see custom-tour status, payment status, and payment-window status as separate fields on custom-tour detail, and shall receive payment success/failure notifications for custom-tour mock payments.
 
 ---
 

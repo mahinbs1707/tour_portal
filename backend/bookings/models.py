@@ -54,6 +54,17 @@ class Booking(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            # One open request per customer per package (PENDING or APPROVED).
+            # CANCELLED / REJECTED free the slot so the customer can rebook.
+            models.UniqueConstraint(
+                fields=["customer", "package"],
+                condition=models.Q(
+                    status__in=["PENDING", "APPROVED"],
+                ),
+                name="uniq_active_booking_customer_package",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"Booking {self.reference} ({self.status})"

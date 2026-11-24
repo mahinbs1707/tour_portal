@@ -10,6 +10,7 @@ function NavItems({ items, onNavigate, className = "" }) {
         <li key={item.to}>
           <NavLink
             to={item.to}
+            end={Boolean(item.end)}
             className={({ isActive }) =>
               `relative inline-flex min-h-11 items-center rounded-[var(--radius-md)] px-2 text-[var(--color-foreground)] ${
                 isActive ? "font-semibold text-[var(--color-primary)]" : "hover:text-[var(--color-primary)]"

@@ -19,6 +19,11 @@ from custom_tours.models import (
 )
 from notifications.services import NotificationService
 from packages.validators import assert_bookable_date
+from payments.services import (
+    PaymentService,
+    PaymentWindowMissing,
+    PaymentWindowNotOpenable,
+)
 
 CUSTOM_TOUR_ENTITY_TYPE = "custom_tour"
 CUSTOM_TOUR_SUBMITTED_EVENT = "custom_tour.submitted"
@@ -49,9 +54,11 @@ class CustomTourService:
     def __init__(
         self,
         *,
+        payments: PaymentService | None = None,
         notifications: NotificationService | None = None,
         audit: AuditService | None = None,
     ):
+        self.payments = payments or PaymentService()
         self.notifications = notifications or NotificationService()
         self.audit = audit or AuditService()
 
@@ -120,6 +127,7 @@ class CustomTourService:
                 preferred_activities=(preferred_activities or "").strip(),
                 additional_requirements=(additional_requirements or "").strip(),
             )
+            self.payments.create_not_open_for_custom_tour(tour)
             notification = self.notifications.create(
                 recipient_id=customer.id,
                 event_key=CUSTOM_TOUR_SUBMITTED_EVENT,
@@ -181,6 +189,14 @@ class CustomTourService:
                     "updated_at",
                 ]
             )
+            try:
+                window = self.payments.open_window_for_custom_tour(
+                    tour, opened_at=approved_at
+                )
+            except PaymentWindowMissing as exc:
+                raise ValidationError({"detail": [str(exc)]}) from exc
+            except PaymentWindowNotOpenable as exc:
+                raise CustomTourNotApprovable(str(exc)) from exc
 
             self.audit.record(
                 actor_id=admin.id,
@@ -188,7 +204,7 @@ class CustomTourService:
                 target_type=CUSTOM_TOUR_ENTITY_TYPE,
                 target_id=str(tour.id),
                 before=before,
-                after=self._decision_snapshot(tour),
+                after=self._decision_snapshot(tour, window=window),
             )
             notification = self.notifications.create(
                 recipient_id=tour.customer_id,
@@ -199,6 +215,7 @@ class CustomTourService:
                     "custom_tour_id": str(tour.id),
                     "title": tour.title,
                     "status": tour.status,
+                    "payment_window_deadline_at": window.deadline_at.isoformat(),
                 },
             )
             if notification is None:
@@ -419,13 +436,18 @@ class CustomTourService:
         return row.custom_tour if row else None
 
     @staticmethod
-    def _decision_snapshot(tour: CustomTour) -> dict:
+    def _decision_snapshot(tour: CustomTour, *, window=None) -> dict:
+        win = window if window is not None else getattr(tour, "payment_window", None)
         return {
             "status": tour.status,
             "rejection_reason": tour.rejection_reason,
             "recommended_adjustments": tour.recommended_adjustments,
             "reapply_enabled": tour.reapply_enabled,
             "approved_at": tour.approved_at.isoformat() if tour.approved_at else None,
+            "payment_window_status": win.status if win else None,
+            "payment_window_deadline_at": (
+                win.deadline_at.isoformat() if win and win.deadline_at else None
+            ),
         }
 
     @staticmethod

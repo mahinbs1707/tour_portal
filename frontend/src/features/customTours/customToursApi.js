@@ -39,3 +39,14 @@ export function createCustomTour(payload, options = {}) {
     headers,
   });
 }
+
+/** POST /api/custom-tours/<uuid>/payments/attempt/ — mock payment outcomes. */
+export function submitCustomTourPaymentAttempt(tourId, outcome) {
+  return apiRequest(
+    `/api/custom-tours/${encodeURIComponent(tourId)}/payments/attempt/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ outcome }),
+    },
+  );
+}
